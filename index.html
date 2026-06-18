@@ -1081,169 +1081,28 @@
       }
     ];
 
-    const works = [
-      {
-        title: { zh: "声藏 · SilNest", en: "SilNest" },
-        category: "software",
-        mediaType: "image",
-        img: "images/silnest-cover.png",
-        desc: {
-          zh: "跨平台本地音乐播放器，强调本地收藏、沉浸播放界面与统一视觉语言。",
-          en: "A cross-platform local music player focused on local collections, immersive playback and a unified visual language."
-        },
-        link: "#",
-        linkText: { zh: "查看项目", en: "View Project" },
-        tags: ["SwiftUI", "Android", "Local Audio", "UI System"]
-      },
-      {
-        title: { zh: "个人作品集系统", en: "Personal Portfolio System" },
-        category: "software",
-        mediaType: "image",
-        img: "images/portfolio-system.png",
-        desc: {
-          zh: "以创作轨道为核心概念的个人主页，包含粒子背景、3D 视觉、作品筛选与双语切换。",
-          en: "A portfolio built around creative orbits, with particles, 3D visuals, archive filtering and bilingual switching."
-        },
-        link: "#",
-        linkText: { zh: "查看演示", en: "Live Demo" },
-        tags: ["HTML", "CSS", "JavaScript", "i18n"]
-      },
-      {
-        title: { zh: "任务管理 CLI 工具", en: "Task Manager CLI" },
-        category: "tools",
-        mediaType: "image",
-        img: "images/tool-cli.png",
-        desc: {
-          zh: "命令行待办工具，支持任务状态、数据持久化与快捷搜索。",
-          en: "A command-line task manager with task states, data persistence and quick search."
-        },
-        link: "https://github.com/yourname/todo-cli",
-        linkText: { zh: "查看源码", en: "Source Code" },
-        tags: ["Rust", "CLI", "Persistence"]
-      },
-      {
-        title: { zh: "批量文件整理器", en: "Batch File Organizer" },
-        category: "tools",
-        mediaType: "image",
-        img: "images/tool-file-organizer.png",
-        desc: {
-          zh: "用于整理图片、音频与文档的自动化脚本，可按类型、日期与命名规则批量归档。",
-          en: "An automation script for organizing images, audio and documents by type, date and naming rules."
-        },
-        link: "#",
-        linkText: { zh: "查看说明", en: "Read More" },
-        tags: ["Python", "Automation", "Workflow"]
-      },
-      {
-        title: { zh: "移动端天气 App 界面", en: "Mobile Weather App UI" },
-        category: "uiux",
-        mediaType: "image",
-        img: "images/ui-weather.jpg",
-        desc: {
-          zh: "高保真移动端界面，包含深色模式、天气状态视觉与微交互设计。",
-          en: "A high-fidelity mobile interface with dark mode, weather state visuals and micro-interactions."
-        },
-        link: "#",
-        linkText: { zh: "查看原型", en: "View Prototype" },
-        tags: ["Mobile UI", "Dark Mode", "Prototype"]
-      },
-      {
-        title: { zh: "品牌图标系统", en: "Brand Icon System" },
-        category: "uiux",
-        mediaType: "image",
-        img: "images/ui-icon-system.png",
-        desc: {
-          zh: "围绕应用品牌构建的图标系统，包含符号、色彩、圆角、光影与跨平台适配规则。",
-          en: "An app icon system covering symbol, color, radius, lighting and cross-platform adaptation rules."
-        },
-        link: "#",
-        linkText: { zh: "查看全案", en: "Case Study" },
-        tags: ["Icon", "Branding", "Design System"]
-      },
-      {
-        title: { zh: "弄堂光影", en: "Light in the Alley" },
-        category: "photo",
-        mediaType: "image",
-        img: "images/photo-alley.jpg",
-        desc: {
-          zh: "城市街巷摄影，关注光线、阴影、墙面纹理与日常生活的瞬间结构。",
-          en: "Urban street photography focused on light, shadow, wall textures and the structure of everyday moments."
-        },
-        link: "#",
-        linkText: { zh: "查看系列", en: "View Series" },
-        tags: ["Street", "B&W", "Urban"]
-      },
-      {
-        title: { zh: "冰岛 · 极光", en: "Iceland Aurora" },
-        category: "photo",
-        mediaType: "image",
-        img: "images/photo-aurora.jpg",
-        desc: {
-          zh: "长曝光风景作品，记录寒冷夜空中的极光轨迹与地景层次。",
-          en: "Long-exposure landscape work capturing aurora movement and layered night scenery."
-        },
-        link: "#",
-        linkText: { zh: "原图故事", en: "Story" },
-        tags: ["Landscape", "Long Exposure", "Travel"]
-      },
-      {
-        title: { zh: "数字绘画 · 赛博城市", en: "Digital Painting · Cyber City" },
-        category: "art",
-        mediaType: "image",
-        img: "images/art-cyber.jpg",
-        desc: {
-          zh: "Procreate 绘制的霓虹城市练习，关注角色剪影、空间透视与高反差色彩。",
-          en: "A Procreate neon city study focused on character silhouette, spatial perspective and high-contrast color."
-        },
-        link: "#",
-        linkText: { zh: "绘画过程", en: "Process" },
-        tags: ["Procreate", "Cyberpunk", "Illustration"]
-      },
-      {
-        title: { zh: "水彩 · 江南古镇", en: "Watercolor · Jiangnan Town" },
-        category: "art",
-        mediaType: "image",
-        img: "images/art-watercolor.jpg",
-        desc: {
-          zh: "纸本水彩练习，尝试用低饱和色调表现江南水乡的湿润空气与建筑层次。",
-          en: "A watercolor study using low-saturation tones to express humid air and architectural layers in a Jiangnan water town."
-        },
-        link: "#",
-        linkText: { zh: "查看作品", en: "View Work" },
-        tags: ["Watercolor", "Paper", "Landscape"]
-      },
-      {
-        title: { zh: "城市夜行 · 影像短片", en: "Night Walk · Short Video" },
-        category: "motion",
-        mediaType: "video",
-        img: "images/motion-night-walk.jpg",
-        video: "videos/motion-night-walk.mp4",
-        desc: {
-          zh: "围绕城市夜景、霓虹反光与步行节奏剪辑的氛围短片。",
-          en: "An atmospheric short edit built around city nights, neon reflections and walking rhythm."
-        },
-        link: "#",
-        linkText: { zh: "观看视频", en: "Watch Video" },
-        tags: ["Short Film", "Edit", "Night"]
-      },
-      {
-        title: { zh: "音乐可视化实验", en: "Music Visualizer Experiment" },
-        category: "motion",
-        mediaType: "video",
-        img: "images/motion-visualizer.jpg",
-        video: "videos/music-visualizer.mp4",
-        desc: {
-          zh: "把声音频谱、粒子、光轨与动态图形结合的视觉实验，可作为音乐 App 宣传素材。",
-          en: "A visual experiment combining audio spectrum, particles, light trails and motion graphics for music-app promotion."
-        },
-        link: "#",
-        linkText: { zh: "查看实验", en: "View Experiment" },
-        tags: ["Motion", "Audio Visual", "Particles"]
-      }
-    ];
+    let works = [];
 
     let currentLang = localStorage.getItem("portfolioLang") || "zh";
     let currentCategory = "all";
+    async function loadWorks() {
+  try {
+    const response = await fetch("data/works.json", { cache: "no-store" });
+
+    if (!response.ok) {
+      throw new Error(`Failed to load works.json: ${response.status}`);
+    }
+
+    works = await response.json();
+
+    if (!Array.isArray(works)) {
+      throw new Error("works.json must be an array");
+    }
+  } catch (error) {
+    console.error(error);
+    works = [];
+  }
+}
 
     function t(path) {
       return path.split(".").reduce((acc, key) => acc && acc[key], i18n[currentLang]) ?? path;
@@ -1583,13 +1442,19 @@
     }, { passive: true });
     window.addEventListener("pointerleave", () => { pointer.active = false; });
 
-    applyLanguage(currentLang);
-    bindTiltCards(document);
+    async function initPortfolio() {
+  await loadWorks();
 
-    if (!reducedMotion) {
-      resizeCanvas();
-      drawParticles();
-    }
+  applyLanguage(currentLang);
+  bindTiltCards(document);
+
+  if (!reducedMotion) {
+    resizeCanvas();
+    drawParticles();
+  }
+}
+
+initPortfolio();
   </script>
 </body>
 </html>

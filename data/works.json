@@ -1,0 +1,29 @@
+[
+  {
+    "id": "test-work",
+    "slug": "test-work",
+    "status": "published",
+    "featured": false,
+    "order": 1,
+    "category": "software",
+    "mediaType": "image",
+    "img": "images/test-cover.webp",
+    "video": "",
+    "title": {
+      "zh": "测试作品",
+      "en": "Test Work"
+    },
+    "desc": {
+      "zh": "这是从 works.json 动态读取的一条测试作品。",
+      "en": "This is a test work loaded dynamically from works.json."
+    },
+    "link": "#",
+    "linkText": {
+      "zh": "查看项目",
+      "en": "View Project"
+    },
+    "tags": ["Test", "CMS", "JSON"],
+    "createdAt": "2026-06-18",
+    "updatedAt": "2026-06-18"
+  }
+]
