@@ -37,29 +37,80 @@
         </div>
 
         <div class="topbar-actions">
-          <button class="btn ghost" id="reloadBtn">重新读取</button>
-          <button class="btn primary" id="exportBtn">导出 works.json</button>
-        </div>
+  <label class="btn ghost file-btn">
+    导入 JSON
+    <input id="importJsonInput" type="file" accept="application/json" hidden />
+  </label>
+  <button class="btn ghost" id="reloadBtn">重新读取</button>
+  <button class="btn primary" id="exportBtn">导出 works.json</button>
+</div>
       </header>
 
       <section class="panel active" id="worksPanel">
         <div class="layout">
           <section class="card list-card">
             <div class="card-head">
-              <h3>作品列表</h3>
-              <button class="btn small" id="newWorkBtn">+ 新增作品</button>
-            </div>
+  <h3>作品列表</h3>
+  <button class="btn small" id="newWorkBtn">+ 新增作品</button>
+</div>
 
-            <div class="work-list" id="workList"></div>
+<div class="cms-stats">
+  <div>
+    <b id="statTotal">0</b>
+    <span>全部</span>
+  </div>
+  <div>
+    <b id="statPublished">0</b>
+    <span>Published</span>
+  </div>
+  <div>
+    <b id="statDraft">0</b>
+    <span>Draft</span>
+  </div>
+  <div>
+    <b id="statFeatured">0</b>
+    <span>Featured</span>
+  </div>
+</div>
+
+<div class="list-tools">
+  <input id="searchInput" type="search" placeholder="搜索标题、Slug、标签..." />
+
+  <select id="categoryFilter">
+    <option value="all">全部分类</option>
+    <option value="software">程序项目</option>
+    <option value="tools">工具实验</option>
+    <option value="uiux">UI/UX</option>
+    <option value="photo">摄影</option>
+    <option value="art">绘画</option>
+    <option value="motion">动态影像</option>
+  </select>
+
+  <select id="statusFilter">
+    <option value="all">全部状态</option>
+    <option value="published">Published</option>
+    <option value="draft">Draft</option>
+    <option value="featured">Featured</option>
+  </select>
+</div>
+
+<div class="work-list" id="workList"></div>
           </section>
 
           <section class="card editor-card">
             <div class="card-head">
-              <h3 id="editorTitle">新增作品</h3>
-              <button class="btn danger small" id="deleteBtn">删除</button>
-            </div>
+  <h3 id="editorTitle">新增作品</h3>
+  <button class="btn danger small" id="deleteBtn">删除</button>
+</div>
 
-            <form id="workForm" class="form">
+<div class="media-preview" id="mediaPreview">
+  <div class="preview-empty">
+    <span>Media Preview</span>
+    <p>输入封面路径后会在这里显示预览。</p>
+  </div>
+</div>
+
+<form id="workForm" class="form">
               <input type="hidden" id="workId" />
 
               <div class="grid two">
