@@ -1,413 +1,1595 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>叶璨源 · 作品集 | 程序·设计·摄影</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#05070D" />
+  <title>叶璨源 · Creative Systems Portfolio</title>
+  <style>
+    :root {
+      --bg: #05070d;
+      --bg2: #0b1020;
+      --panel: rgba(15, 23, 42, .58);
+      --panel2: rgba(15, 23, 42, .78);
+      --line: rgba(148, 163, 184, .22);
+      --line2: rgba(203, 213, 225, .36);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --muted2: #64748b;
+      --blue: #2a5aff;
+      --cyan: #3cd0c8;
+      --violet: #8b5cf6;
+      --amber: #ffb347;
+      --danger: #fb7185;
+      --max: 1320px;
+      --nav: 72px;
+      --ease: cubic-bezier(.2,.8,.2,1);
+    }
 
-        body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            background: #fafaf9;
-            color: #1c1c1e;
-            line-height: 1.5;
-            scroll-behavior: smooth;
-        }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; background: var(--bg); }
+    body {
+      min-height: 100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+      color: var(--text);
+      line-height: 1.55;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 12% 16%, rgba(42,90,255,.26), transparent 32%),
+        radial-gradient(circle at 82% 8%, rgba(60,208,200,.18), transparent 28%),
+        radial-gradient(circle at 50% 92%, rgba(139,92,246,.16), transparent 35%),
+        linear-gradient(180deg, #05070d 0%, #0b1020 48%, #060812 100%);
+    }
 
-        .container {
-            max-width: 1300px;
-            margin: 0 auto;
-            padding: 0 1.5rem;
-        }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -4;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(148,163,184,.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,.055) 1px, transparent 1px);
+      background-size: 62px 62px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,.95), rgba(0,0,0,.42), transparent 92%);
+    }
 
-        /* 头部导航 */
-        header {
-            padding: 2rem 0 1rem;
-            border-bottom: 1px solid #e4e4e7;
-            margin-bottom: 2rem;
-        }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -3;
+      pointer-events: none;
+      opacity: .16;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.58'/%3E%3C/svg%3E");
+      mix-blend-mode: soft-light;
+    }
 
-        .name {
-            font-size: 2rem;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-        }
+    a { color: inherit; text-decoration: none; }
+    img, video { display: block; max-width: 100%; }
+    button { font: inherit; }
 
-        .tagline {
-            color: #555;
-            margin-top: 0.25rem;
-            font-size: 1rem;
-        }
+    .container { width: min(100% - 40px, var(--max)); margin-inline: auto; }
+    #particleCanvas { position: fixed; inset: 0; z-index: -2; pointer-events: none; opacity: .82; }
 
-        /* 分类筛选按钮 */
-        .filters {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            margin: 2rem 0 2rem;
-            justify-content: center;
-        }
+    .orbital-glow {
+      position: fixed;
+      width: 560px;
+      height: 560px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(circle, rgba(60,208,200,.12), transparent 58%),
+        radial-gradient(circle, rgba(42,90,255,.10), transparent 64%);
+      filter: blur(10px);
+      transform: translate3d(-50%,-50%,0);
+      left: var(--mouse-x, 50%);
+      top: var(--mouse-y, 40%);
+      transition: left .35s ease, top .35s ease;
+    }
 
-        .filter-btn {
-            background: transparent;
-            border: 1px solid #cbd5e1;
-            padding: 0.5rem 1.2rem;
-            border-radius: 60px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: #334155;
-        }
+    .site-nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: var(--nav);
+      display: flex;
+      align-items: center;
+      background: linear-gradient(180deg, rgba(5,7,13,.9), rgba(5,7,13,.58));
+      border-bottom: 1px solid rgba(148,163,184,.14);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
 
-        .filter-btn.active {
-            background: #1e293b;
-            border-color: #1e293b;
-            color: white;
-        }
+    .nav-inner {
+      width: min(100% - 40px, var(--max));
+      margin-inline: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
 
-        .filter-btn:hover {
-            background: #e2e8f0;
-        }
+    .brand { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+    .brand-mark {
+      position: relative;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      border-radius: 13px;
+      overflow: hidden;
+      background: linear-gradient(135deg, rgba(42,90,255,.92), rgba(60,208,200,.78) 58%, rgba(255,179,71,.82));
+      box-shadow: 0 0 34px rgba(42,90,255,.3);
+    }
 
-        /* 作品网格 */
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 2rem;
-            margin: 2rem 0 3rem;
-        }
+    .brand-mark::before, .brand-mark::after {
+      content: "";
+      position: absolute;
+      border: 2px solid rgba(255,255,255,.82);
+      border-left-color: transparent;
+      border-bottom-color: transparent;
+      border-radius: 50%;
+      transform: rotate(38deg);
+    }
 
-        .card {
-            background: white;
-            border-radius: 24px;
-            overflow: hidden;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-            transition: transform 0.25s ease, box-shadow 0.25s;
-            cursor: pointer;
-        }
+    .brand-mark::before { inset: 7px 6px 7px 8px; }
+    .brand-mark::after { inset: 12px 9px 10px 9px; opacity: .64; }
+    .brand-title { display: block; font-weight: 700; letter-spacing: -.04em; white-space: nowrap; }
+    .brand-sub { display: block; color: var(--muted); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
 
-        .card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 20px 30px -12px rgba(0,0,0,0.12);
-        }
+    .nav-actions { display: flex; align-items: center; gap: .6rem; }
+    .nav-links { display: flex; align-items: center; gap: .35rem; color: var(--muted); font-size: .9rem; }
+    .nav-links a { padding: .48rem .78rem; border-radius: 999px; border: 1px solid transparent; transition: .2s; }
+    .nav-links a:hover { color: var(--text); background: rgba(15,23,42,.72); border-color: rgba(148,163,184,.22); }
 
-        .card-img {
-            width: 100%;
-            aspect-ratio: 4 / 3;
-            object-fit: cover;
-            background: #f0f0f0;
-            display: block;
-        }
+    .lang-toggle {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: .24rem;
+      border: 1px solid rgba(148,163,184,.22);
+      background: rgba(15,23,42,.62);
+      color: #dbeafe;
+      border-radius: 999px;
+      cursor: pointer;
+      backdrop-filter: blur(16px);
+      box-shadow: inset 0 0 22px rgba(255,255,255,.025);
+    }
 
-        .card-content {
-            padding: 1.2rem;
-        }
+    .lang-toggle span {
+      position: relative;
+      z-index: 2;
+      display: inline-grid;
+      place-items: center;
+      min-width: 38px;
+      padding: .32rem .46rem;
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .04em;
+      color: var(--muted);
+      transition: color .22s;
+    }
 
-        .card-category {
-            display: inline-block;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            background: #eef2ff;
-            padding: 0.2rem 0.7rem;
-            border-radius: 20px;
-            color: #1e40af;
-            margin-bottom: 0.6rem;
-        }
+    html[data-lang="zh"] .lang-toggle .zh,
+    html[data-lang="en"] .lang-toggle .en { color: var(--text); }
 
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 0.4rem;
-        }
+    .lang-toggle::before {
+      content: "";
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      left: 4px;
+      width: calc(50% - 4px);
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(42,90,255,.92), rgba(60,208,200,.72));
+      box-shadow: 0 0 22px rgba(42,90,255,.22);
+      transition: transform .24s var(--ease);
+    }
 
-        .card-desc {
-            font-size: 0.85rem;
-            color: #4b5563;
-            margin-bottom: 0.8rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
+    html[data-lang="en"] .lang-toggle::before { transform: translateX(100%); }
 
-        .card-link {
-            font-size: 0.8rem;
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
+    .hero {
+      min-height: calc(100svh - var(--nav));
+      display: grid;
+      grid-template-columns: minmax(0, 1.04fr) minmax(360px, .96fr);
+      align-items: center;
+      gap: clamp(2rem, 6vw, 6rem);
+      padding: clamp(3rem, 8vh, 6rem) 0 4rem;
+    }
 
-        .card-link:hover {
-            text-decoration: underline;
-        }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: .55rem;
+      width: fit-content;
+      color: #dbeafe;
+      font-size: .78rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      padding: .5rem .75rem;
+      border: 1px solid rgba(148,163,184,.22);
+      border-radius: 999px;
+      background: rgba(15,23,42,.54);
+      box-shadow: inset 0 0 24px rgba(255,255,255,.03);
+      backdrop-filter: blur(16px);
+    }
 
-        /* 轻提示弹窗（图片放大） */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            cursor: pointer;
-        }
-        .modal img {
-            max-width: 90%;
-            max-height: 85%;
-            border-radius: 16px;
-            box-shadow: 0 20px 35px rgba(0,0,0,0.3);
-        }
-        .modal-close {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            font-size: 2rem;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 18px rgba(60,208,200,.9);
+    }
 
-        /* 关于 & 联系 */
-        .about-section, .contact-section {
-            margin-top: 4rem;
-            padding: 2rem 0;
-            border-top: 1px solid #e4e4e7;
-        }
-        h2 {
-            font-size: 1.8rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-        .contact-links {
-            display: flex;
-            gap: 1.5rem;
-            flex-wrap: wrap;
-            margin-top: 1rem;
-        }
-        .contact-links a {
-            color: #1e293b;
-            text-decoration: none;
-            border-bottom: 1px dashed #94a3b8;
-        }
-        footer {
-            text-align: center;
-            padding: 2rem 0;
-            font-size: 0.8rem;
-            color: #6c757d;
-            border-top: 1px solid #e4e4e7;
-            margin-top: 2rem;
-        }
+    .hero-title {
+      margin-top: 1.45rem;
+      max-width: 900px;
+      font-size: clamp(3.2rem, 8.1vw, 7.9rem);
+      line-height: .9;
+      letter-spacing: -.085em;
+      font-weight: 820;
+    }
 
-        @media (max-width: 700px) {
-            .gallery {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-            }
-            .container {
-                padding: 0 1rem;
-            }
-        }
-    </style>
+    .hero-title span { display: block; }
+    .gradient-text {
+      background: linear-gradient(135deg, #fff 0%, #dbeafe 22%, #7dd3fc 48%, #a78bfa 72%, #ffcf8a 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero-copy {
+      max-width: 700px;
+      margin-top: 1.4rem;
+      color: #cbd5e1;
+      font-size: clamp(1rem, 1.5vw, 1.2rem);
+    }
+
+    .hero-copy strong { color: var(--text); font-weight: 700; }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: .9rem;
+      margin-top: 2rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      min-height: 46px;
+      padding: .78rem 1.1rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,.26);
+      background: rgba(15,23,42,.62);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform .22s var(--ease), border-color .22s, background .22s, box-shadow .22s;
+      backdrop-filter: blur(16px);
+    }
+
+    .btn:hover { transform: translateY(-2px); border-color: rgba(203,213,225,.42); background: rgba(30,41,59,.7); box-shadow: 0 16px 36px rgba(0,0,0,.22); }
+    .btn-primary { background: linear-gradient(135deg, rgba(42,90,255,.96), rgba(60,208,200,.82)); border-color: rgba(125,211,252,.42); box-shadow: 0 18px 48px rgba(42,90,255,.28); }
+
+    .hero-meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: .8rem;
+      margin-top: 2.5rem;
+      max-width: 760px;
+    }
+
+    .metric {
+      padding: 1rem;
+      border-radius: 20px;
+      background: rgba(15,23,42,.48);
+      border: 1px solid rgba(148,163,184,.18);
+      backdrop-filter: blur(16px);
+      box-shadow: inset 0 0 24px rgba(255,255,255,.025);
+    }
+
+    .metric b { display: block; font-size: 1.15rem; letter-spacing: -.03em; }
+    .metric span { display: block; margin-top: .25rem; color: var(--muted); font-size: .82rem; }
+
+    .hero-visual {
+      position: relative;
+      min-height: min(72vh, 680px);
+      display: grid;
+      place-items: center;
+      perspective: 1100px;
+    }
+
+    .visual-shell {
+      position: relative;
+      width: min(100%, 560px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      transform-style: preserve-3d;
+      animation: floatShell 7s ease-in-out infinite;
+    }
+
+    @keyframes floatShell {
+      0%, 100% { transform: translateY(0) rotateX(0); }
+      50% { transform: translateY(-16px) rotateX(2deg); }
+    }
+
+    .core-orb {
+      position: absolute;
+      z-index: 5;
+      width: 38%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle at 34% 26%, rgba(255,255,255,.95), transparent 0 8%, rgba(60,208,200,.62) 22%, rgba(42,90,255,.68) 58%, rgba(8,13,28,.96) 100%);
+      box-shadow: inset -24px -28px 70px rgba(0,0,0,.46), inset 12px 10px 36px rgba(255,255,255,.16), 0 0 84px rgba(42,90,255,.48), 0 0 120px rgba(60,208,200,.18);
+    }
+
+    .core-orb::after {
+      content: "";
+      position: absolute;
+      inset: 21%;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: 0 0 22px rgba(255,255,255,.1);
+    }
+
+    .orbit {
+      position: absolute;
+      border: 1px solid rgba(148,163,184,.24);
+      border-radius: 50%;
+      transform-style: preserve-3d;
+      box-shadow: 0 0 36px rgba(42,90,255,.08), inset 0 0 30px rgba(60,208,200,.05);
+    }
+
+    .orbit-1 { width: 74%; height: 29%; transform: rotateX(66deg) rotateZ(-18deg); animation: spinA 16s linear infinite; }
+    .orbit-2 { width: 88%; height: 38%; transform: rotateX(71deg) rotateZ(34deg); animation: spinB 22s linear infinite reverse; }
+    .orbit-3 { width: 62%; height: 62%; transform: rotateX(56deg) rotateY(24deg) rotateZ(10deg); animation: spinC 18s linear infinite; }
+
+    @keyframes spinA { to { transform: rotateX(66deg) rotateZ(342deg); } }
+    @keyframes spinB { to { transform: rotateX(71deg) rotateZ(394deg); } }
+    @keyframes spinC { to { transform: rotateX(56deg) rotateY(24deg) rotateZ(370deg); } }
+
+    .node {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 24px rgba(60,208,200,.88);
+    }
+
+    .orbit-1 .node { top: 6%; left: 72%; }
+    .orbit-2 .node { bottom: 10%; left: 18%; background: var(--amber); box-shadow: 0 0 24px rgba(255,179,71,.72); }
+    .orbit-3 .node { top: 20%; right: 9%; background: var(--violet); box-shadow: 0 0 24px rgba(139,92,246,.78); }
+
+    .holo-card {
+      position: absolute;
+      width: 184px;
+      padding: .9rem;
+      border-radius: 20px;
+      border: 1px solid rgba(148,163,184,.24);
+      background: rgba(15,23,42,.42);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 18px 44px rgba(0,0,0,.24), inset 0 0 30px rgba(255,255,255,.025);
+      color: #dbeafe;
+      transform-style: preserve-3d;
+    }
+
+    .holo-card b { display: block; font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--cyan); }
+    .holo-card span { display: block; margin-top: .25rem; font-size: .82rem; color: var(--muted); }
+    .holo-card-1 { top: 10%; left: 0; transform: rotateY(18deg) translateZ(42px); }
+    .holo-card-2 { right: -2%; bottom: 15%; transform: rotateY(-20deg) translateZ(54px); }
+    .holo-card-3 { left: 14%; bottom: 2%; transform: rotateX(14deg) translateZ(24px); }
+
+    .scanline {
+      position: absolute;
+      inset: 4%;
+      height: 22%;
+      top: 14%;
+      border-radius: 50%;
+      background: linear-gradient(180deg, transparent, rgba(60,208,200,.16), transparent);
+      filter: blur(3px);
+      animation: scan 4.8s ease-in-out infinite;
+      opacity: .75;
+    }
+
+    @keyframes scan {
+      0%,100% { transform: translateY(0); opacity: .2; }
+      50% { transform: translateY(300%); opacity: .72; }
+    }
+
+    .identity-strip {
+      padding: 1.1rem 0;
+      border-block: 1px solid rgba(148,163,184,.16);
+      background: rgba(15,23,42,.3);
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .marquee { display: flex; gap: 1rem; width: max-content; animation: marquee 30s linear infinite; }
+    .marquee span { display: inline-flex; align-items: center; gap: 1rem; color: #dbeafe; letter-spacing: .1em; text-transform: uppercase; font-size: .84rem; white-space: nowrap; }
+    .marquee span::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: rgba(60,208,200,.9); box-shadow: 0 0 16px rgba(60,208,200,.9); }
+    @keyframes marquee { to { transform: translateX(-50%); } }
+
+    .section { padding: clamp(4rem, 9vw, 7rem) 0; position: relative; }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 2rem; margin-bottom: 2rem; }
+    .section-kicker { display: inline-flex; align-items: center; gap: .5rem; color: var(--cyan); letter-spacing: .12em; text-transform: uppercase; font-weight: 700; font-size: .75rem; }
+    .section-kicker::before { content: ""; width: 24px; height: 1px; background: currentColor; box-shadow: 0 0 18px currentColor; }
+    h2 { margin-top: .55rem; font-size: clamp(2rem, 4.4vw, 4rem); line-height: 1; letter-spacing: -.06em; }
+    .section-desc { max-width: 560px; color: var(--muted); font-size: .98rem; }
+
+    .featured-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; }
+    .feature-card {
+      position: relative;
+      min-height: 330px;
+      overflow: hidden;
+      border-radius: 32px;
+      border: 1px solid rgba(148,163,184,.22);
+      background:
+        linear-gradient(135deg, rgba(15,23,42,.78), rgba(15,23,42,.36)),
+        radial-gradient(circle at var(--mx, 50%) var(--my, 0%), rgba(60,208,200,.16), transparent 34%);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 24px 60px rgba(0,0,0,.28), inset 0 0 40px rgba(255,255,255,.025);
+      padding: clamp(1.2rem, 2.4vw, 2rem);
+      isolation: isolate;
+      transition: transform .24s var(--ease), border-color .24s, box-shadow .24s;
+      transform-style: preserve-3d;
+    }
+
+    .feature-card:hover { border-color: rgba(125,211,252,.38); box-shadow: 0 32px 80px rgba(0,0,0,.34), 0 0 70px rgba(42,90,255,.12), inset 0 0 40px rgba(255,255,255,.035); }
+    .feature-card.large { grid-column: span 7; }
+    .feature-card.medium { grid-column: span 5; }
+    .feature-card.small { grid-column: span 4; min-height: 280px; }
+
+    .feature-bg-word {
+      position: absolute;
+      right: -.08em;
+      bottom: -.24em;
+      z-index: -1;
+      color: rgba(255,255,255,.035);
+      font-size: clamp(6rem, 15vw, 13rem);
+      font-weight: 900;
+      letter-spacing: -.11em;
+      line-height: .8;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .feature-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: var(--muted); font-size: .82rem; text-transform: uppercase; letter-spacing: .12em; }
+    .status-pill { color: #dbeafe; border: 1px solid rgba(148,163,184,.2); background: rgba(15,23,42,.64); padding: .36rem .58rem; border-radius: 999px; white-space: nowrap; }
+    .feature-card h3 { margin-top: 1.6rem; max-width: 620px; font-size: clamp(1.6rem, 3vw, 3.25rem); line-height: 1; letter-spacing: -.055em; }
+    .feature-card p { max-width: 600px; margin-top: 1rem; color: #cbd5e1; }
+
+    .tech-list, .card-tags { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.3rem; }
+    .tech-list span, .card-tags span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: .34rem .62rem;
+      border-radius: 999px;
+      color: #dbeafe;
+      font-size: .76rem;
+      border: 1px solid rgba(148,163,184,.2);
+      background: rgba(15,23,42,.52);
+    }
+
+    .category-overview { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .75rem; margin-top: 1.5rem; }
+    .category-chip {
+      min-height: 116px;
+      text-align: left;
+      border-radius: 24px;
+      border: 1px solid rgba(148,163,184,.18);
+      background: rgba(15,23,42,.42);
+      color: var(--text);
+      padding: 1rem;
+      cursor: pointer;
+      backdrop-filter: blur(16px);
+      transition: transform .22s var(--ease), border-color .22s, background .22s;
+    }
+
+    .category-chip:hover { transform: translateY(-3px); border-color: rgba(125,211,252,.34); background: rgba(30,41,59,.46); }
+    .category-chip .icon { font-size: 1.2rem; }
+    .category-chip b { display: block; margin-top: .55rem; font-size: .94rem; letter-spacing: -.02em; }
+    .category-chip span:last-child { display: block; margin-top: .28rem; color: var(--muted); font-size: .76rem; }
+
+    .filters { display: flex; flex-wrap: wrap; gap: .75rem; margin: 2rem 0; }
+    .filter-btn {
+      min-height: 42px;
+      background: rgba(15,23,42,.52);
+      border: 1px solid rgba(148,163,184,.22);
+      color: #cbd5e1;
+      padding: .62rem 1rem;
+      border-radius: 999px;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .2s var(--ease), background .2s, border-color .2s, color .2s, box-shadow .2s;
+      backdrop-filter: blur(16px);
+    }
+
+    .filter-btn:hover { transform: translateY(-2px); color: var(--text); border-color: rgba(203,213,225,.38); box-shadow: 0 18px 40px rgba(0,0,0,.18); }
+    .filter-btn.active { color: white; background: linear-gradient(135deg, rgba(42,90,255,.92), rgba(60,208,200,.74)); border-color: rgba(125,211,252,.42); box-shadow: 0 0 38px rgba(42,90,255,.22); }
+
+    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 1.2rem; margin-top: 1.5rem; }
+    .card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 28px;
+      border: 1px solid rgba(148,163,184,.2);
+      background:
+        linear-gradient(135deg, rgba(15,23,42,.76), rgba(15,23,42,.38)),
+        radial-gradient(circle at var(--mx, 50%) var(--my, 0%), rgba(42,90,255,.18), transparent 32%);
+      box-shadow: 0 24px 56px rgba(0,0,0,.24), inset 0 0 32px rgba(255,255,255,.02);
+      transform-style: preserve-3d;
+      transition: transform .22s var(--ease), border-color .22s, box-shadow .22s;
+      cursor: pointer;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(255,255,255,.18), transparent 28%, transparent 72%, rgba(60,208,200,.12));
+      opacity: .32;
+    }
+
+    .card:hover { border-color: rgba(125,211,252,.4); box-shadow: 0 34px 82px rgba(0,0,0,.32), 0 0 56px rgba(42,90,255,.12), inset 0 0 36px rgba(255,255,255,.035); }
+
+    .card-media {
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(60,208,200,.2), transparent 30%),
+        linear-gradient(135deg, rgba(30,41,59,.9), rgba(2,6,23,.9));
+    }
+
+    .card-img, .card-video { width: 100%; height: 100%; object-fit: cover; opacity: .9; transition: transform .5s var(--ease), opacity .3s; filter: saturate(.92) contrast(1.05); }
+    .card:hover .card-img, .card:hover .card-video { transform: scale(1.055); opacity: 1; }
+
+    .img-fallback {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: rgba(226,232,240,.72);
+      text-align: center;
+      padding: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      background:
+        linear-gradient(135deg, rgba(42,90,255,.18), rgba(60,208,200,.08)),
+        repeating-linear-gradient(135deg, rgba(255,255,255,.035) 0 1px, transparent 1px 14px);
+    }
+
+    .video-badge {
+      position: absolute;
+      z-index: 4;
+      left: 1rem;
+      bottom: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      min-height: 34px;
+      padding: .38rem .72rem;
+      border-radius: 999px;
+      background: rgba(2,6,23,.72);
+      border: 1px solid rgba(255,255,255,.16);
+      color: #f8fafc;
+      font-size: .8rem;
+      backdrop-filter: blur(14px);
+    }
+
+    .video-badge::before { content: ""; width: 0; height: 0; border-left: 8px solid #f8fafc; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+
+    .card-content { position: relative; z-index: 3; padding: 1.15rem 1.15rem 1.25rem; }
+    .card-category {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      color: #dbeafe;
+      font-size: .68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      background: rgba(42,90,255,.16);
+      border: 1px solid rgba(125,211,252,.24);
+      padding: .25rem .62rem;
+      border-radius: 999px;
+      margin-bottom: .75rem;
+    }
+
+    .card-title { font-size: 1.2rem; font-weight: 700; letter-spacing: -.03em; margin-bottom: .42rem; }
+    .card-desc { color: #aab7c8; font-size: .9rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.8em; }
+    .card-tags { margin-top: .9rem; gap: .38rem; }
+    .card-tags span { min-height: 24px; padding: .24rem .5rem; font-size: .68rem; color: #b9c7db; background: rgba(2,6,23,.32); }
+    .card-bottom { margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .card-link { display: inline-flex; align-items: center; gap: .35rem; font-size: .84rem; color: #93c5fd; font-weight: 700; }
+    .card-link:hover { color: white; }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      padding: 3rem;
+      color: var(--muted);
+      text-align: center;
+      border: 1px dashed rgba(148,163,184,.25);
+      border-radius: 24px;
+      background: rgba(15,23,42,.34);
+    }
+
+    .about-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 1rem; align-items: stretch; }
+    .about-panel, .terminal-panel {
+      overflow: hidden;
+      border-radius: 32px;
+      border: 1px solid rgba(148,163,184,.22);
+      background: rgba(15,23,42,.58);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 24px 60px rgba(0,0,0,.25), inset 0 0 32px rgba(255,255,255,.025);
+      padding: clamp(1.3rem, 2.5vw, 2rem);
+    }
+
+    .about-panel p { color: #cbd5e1; margin-top: 1rem; font-size: 1rem; }
+    .signal-list { display: grid; gap: .7rem; margin-top: 1.4rem; }
+    .signal-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem .95rem; border-radius: 18px; background: rgba(2,6,23,.28); border: 1px solid rgba(148,163,184,.14); color: #dbeafe; }
+    .signal-item span:last-child { color: var(--muted); font-size: .86rem; text-align: right; }
+
+    .terminal-panel { background: linear-gradient(135deg, rgba(2,6,23,.72), rgba(15,23,42,.56)), radial-gradient(circle at 80% 0%, rgba(60,208,200,.12), transparent 30%); }
+    .terminal-header { display: flex; align-items: center; gap: .45rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(148,163,184,.16); margin-bottom: 1rem; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
+    .dot:nth-child(2) { background: var(--amber); }
+    .dot:nth-child(3) { background: var(--cyan); }
+    .terminal-title { margin-left: .5rem; color: var(--muted); font-size: .82rem; letter-spacing: .06em; }
+    .terminal-line { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; color: #cbd5e1; padding: .25rem 0; font-size: .92rem; overflow-wrap: anywhere; }
+    .terminal-line .prompt { color: var(--cyan); }
+    .terminal-line .cmd { color: #f8fafc; }
+    .terminal-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; margin-top: 1.5rem; }
+    .terminal-links a { padding: .9rem 1rem; border-radius: 18px; background: rgba(15,23,42,.68); border: 1px solid rgba(148,163,184,.18); color: #dbeafe; transition: .2s var(--ease); }
+    .terminal-links a:hover { transform: translateY(-2px); border-color: rgba(125,211,252,.36); background: rgba(30,41,59,.72); }
+
+    footer { border-top: 1px solid rgba(148,163,184,.16); padding: 2rem 0; color: var(--muted2); font-size: .84rem; text-align: center; }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: rgba(0,0,0,.82);
+      backdrop-filter: blur(14px);
+      cursor: zoom-out;
+    }
+
+    .modal.is-open { display: flex; }
+    .modal img { max-width: min(92vw, 1200px); max-height: 84svh; border-radius: 24px; border: 1px solid rgba(255,255,255,.14); box-shadow: 0 24px 80px rgba(0,0,0,.5); object-fit: contain; background: #0b1020; }
+    .modal-close { position: absolute; top: 20px; right: 26px; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 999px; color: white; font-size: 2rem; line-height: 1; cursor: pointer; background: rgba(15,23,42,.58); border: 1px solid rgba(255,255,255,.14); }
+
+    .reveal { opacity: 0; transform: translateY(28px); filter: blur(10px); transition: opacity .75s var(--ease), transform .75s var(--ease), filter .75s var(--ease); }
+    .reveal.is-visible { opacity: 1; transform: translateY(0); filter: blur(0); }
+
+    @media (max-width: 1120px) {
+      .category-overview { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 1020px) {
+      .hero { grid-template-columns: 1fr; padding-top: 3rem; }
+      .hero-visual { min-height: 520px; order: -1; }
+      .hero-title { font-size: clamp(3rem, 12vw, 6rem); }
+      .feature-card.large, .feature-card.medium, .feature-card.small { grid-column: span 12; }
+      .about-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 780px) {
+      .nav-links { display: none; }
+    }
+
+    @media (max-width: 720px) {
+      :root { --nav: 64px; }
+      .container, .nav-inner { width: min(100% - 28px, var(--max)); }
+      .brand-sub { display: none; }
+      .brand-title { font-size: .92rem; }
+      .lang-toggle span { min-width: 34px; }
+      .hero { min-height: auto; padding: 2rem 0 3rem; }
+      .hero-visual { min-height: 340px; }
+      .visual-shell { width: min(94vw, 420px); }
+      .holo-card { width: 138px; padding: .7rem; }
+      .holo-card-1 { top: 6%; left: 1%; }
+      .holo-card-2 { right: 0; bottom: 10%; }
+      .holo-card-3 { display: none; }
+      .hero-meta { grid-template-columns: 1fr; }
+      .section-head { display: block; }
+      .section-desc { margin-top: 1rem; }
+      .category-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .gallery { grid-template-columns: 1fr; }
+      .terminal-links { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 430px) {
+      .category-overview { grid-template-columns: 1fr; }
+      .brand-title { max-width: 165px; display: block; overflow: hidden; text-overflow: ellipsis; }
+      .hero-title { font-size: 3.05rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .001ms !important; }
+      #particleCanvas { display: none; }
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-    <header>
-        <div class="name">叶璨源 · YE CANYUAN</div>
-        <div class="tagline">程序员 / 设计师 / 摄影与画手</div>
-    </header>
+  <canvas id="particleCanvas" aria-hidden="true"></canvas>
+  <div class="orbital-glow" aria-hidden="true"></div>
 
-    <div class="filters" id="filterButtons">
-        <button class="filter-btn active" data-category="all">全部作品</button>
-        <button class="filter-btn" data-category="code">💻 编程项目</button>
-        <button class="filter-btn" data-category="design">🎨 设计作品</button>
-        <button class="filter-btn" data-category="photo">📷 摄影</button>
-        <button class="filter-btn" data-category="art">🖌️ 画作</button>
-    </div>
+  <nav class="site-nav">
+    <div class="nav-inner">
+      <a href="#top" class="brand" aria-label="Back to top">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>
+          <span class="brand-title">叶璨源 · YE CANYUAN</span>
+          <span class="brand-sub">Creative Systems</span>
+        </span>
+      </a>
 
-    <div class="gallery" id="galleryContainer"></div>
-
-    <div class="about-section" id="about">
-        <h2>关于我</h2>
-        <p>我是叶璨源，全栈开发者 + 视觉创作者。我相信代码与美学同源。这里融合了我的编程实验、UI/平面设计、街头摄影以及手绘作品。每一件都是我探索世界的切面。</p>
-        <p>📍 目前 base 纽约 · 自由职业 · 接受项目合作</p>
-    </div>
-
-    <div class="contact-section" id="contact">
-        <h2>联系</h2>
-        <div class="contact-links">
-            <a href="mailto:fjyecy@gmail.com">📧 fjyecy@gmail.com</a>
-            <a href="#">GitHub</a>
-            <a href="#">Behance</a>
-            <a href="#">Instagram</a>
+      <div class="nav-actions">
+        <div class="nav-links" aria-label="Page navigation">
+          <a href="#featured" data-i18n="nav.featured">核心项目</a>
+          <a href="#archive" data-i18n="nav.archive">作品档案</a>
+          <a href="#about" data-i18n="nav.about">关于</a>
+          <a href="#contact" data-i18n="nav.contact">联系</a>
         </div>
+
+        <button class="lang-toggle" id="langToggle" type="button" aria-label="Switch language">
+          <span class="zh">中</span>
+          <span class="en">EN</span>
+        </button>
+      </div>
     </div>
-    <footer>
-        © 2026 叶璨源 · 作品集永久属于我自己 · 代码与热爱
-    </footer>
-</div>
+  </nav>
 
-<!-- 图片放大弹窗 -->
-<div id="imageModal" class="modal">
-    <span class="modal-close">&times;</span>
-    <img id="modalImage" src="" alt="放大预览">
-</div>
+  <main id="top">
+    <section class="hero container">
+      <div class="hero-content reveal is-visible">
+        <div class="eyebrow" data-i18n="hero.eyebrow">Portfolio / Software / Tools / Visual</div>
+        <h1 class="hero-title">
+          <span data-i18n="hero.titleA">Creative</span>
+          <span class="gradient-text" data-i18n="hero.titleB">Systems</span>
+        </h1>
+        <p class="hero-copy" data-i18n-html="hero.copy">
+          我是 <strong>叶璨源</strong>。我用代码搭建系统，用工具解决问题，用界面组织体验，用摄影、绘画与动态影像保存视觉记忆。
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#featured" data-i18n="hero.primaryCta">进入创作轨道 →</a>
+          <a class="btn" href="#archive" data-i18n="hero.secondaryCta">查看全部作品</a>
+          <a class="btn" href="mailto:fjyecy@gmail.com" data-i18n="hero.contactCta">联系合作</a>
+        </div>
+        <div class="hero-meta" aria-label="Capability dimensions">
+          <div class="metric"><b data-i18n="hero.metric1Title">Software</b><span data-i18n="hero.metric1Desc">App / Web / Systems</span></div>
+          <div class="metric"><b data-i18n="hero.metric2Title">Tools</b><span data-i18n="hero.metric2Desc">CLI / Automation / AI Utilities</span></div>
+          <div class="metric"><b data-i18n="hero.metric3Title">Visual</b><span data-i18n="hero.metric3Desc">UI/UX / Photo / Art / Motion</span></div>
+        </div>
+      </div>
 
-<script>
-    // ---------- 作品数据 (你需要替换为自己的内容) ----------
-    const works = [
-        // 编程项目
-        {
-            title: "VitePress 博客主题",
-            category: "code",
-            img: "images/code-blog.png",   // 替换成你自己的图片路径
-            desc: "极简个人博客主题，支持暗色模式与标签系统。Vue3 + Vite 构建。",
-            link: "https://github.com/yourname/blog-theme",
-            linkText: "GitHub →"
+      <div class="hero-visual reveal is-visible" aria-hidden="true">
+        <div class="visual-shell" id="visualShell">
+          <div class="scanline"></div>
+          <div class="orbit orbit-1"><span class="node"></span></div>
+          <div class="orbit orbit-2"><span class="node"></span></div>
+          <div class="orbit orbit-3"><span class="node"></span></div>
+          <div class="core-orb"></div>
+          <div class="holo-card holo-card-1"><b data-i18n="holo.card1Title">01 / Software</b><span data-i18n="holo.card1Desc">Interfaces, products and systems.</span></div>
+          <div class="holo-card holo-card-2"><b data-i18n="holo.card2Title">02 / Tools</b><span data-i18n="holo.card2Desc">Small utilities with sharp purpose.</span></div>
+          <div class="holo-card holo-card-3"><b data-i18n="holo.card3Title">03 / Visual</b><span data-i18n="holo.card3Desc">UI, photo, art and motion archive.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="identity-strip" aria-label="Creative identity">
+      <div class="marquee" id="marqueeTrack"></div>
+    </section>
+
+    <section class="section container" id="featured">
+      <div class="section-head reveal">
+        <div>
+          <div class="section-kicker" data-i18n="featured.kicker">Featured Systems</div>
+          <h2 data-i18n="featured.title">核心项目</h2>
+        </div>
+        <p class="section-desc" data-i18n="featured.desc">
+          这里优先展示能体现综合能力的项目：产品意识、技术实现、界面体验、视觉系统与可展示成果。
+        </p>
+      </div>
+
+      <div class="featured-grid" id="featuredGrid"></div>
+    </section>
+
+    <section class="section container" id="archive">
+      <div class="section-head reveal">
+        <div>
+          <div class="section-kicker" data-i18n="archive.kicker">Creative Archive</div>
+          <h2 data-i18n="archive.title">作品档案馆</h2>
+        </div>
+        <p class="section-desc" data-i18n="archive.desc">
+          作品区块重新划分为程序、工具、UI/UX、摄影、绘画与动态影像。中英文切换会同步更新筛选、卡片、项目说明与导航文案。
+        </p>
+      </div>
+
+      <div class="category-overview reveal" id="categoryOverview"></div>
+      <div class="filters reveal" id="filterButtons" aria-label="Work category filters"></div>
+      <div class="gallery" id="galleryContainer"></div>
+    </section>
+
+    <section class="section container" id="about">
+      <div class="about-grid">
+        <div class="about-panel reveal">
+          <div class="section-kicker" data-i18n="about.kicker">About Me</div>
+          <h2 data-i18n="about.title">关于我</h2>
+          <p data-i18n="about.p1">
+            我是叶璨源，一个全栈开发者与视觉创作者。我关注的不只是“做出一个页面”或“完成一张图片”，而是如何把技术、审美、交互和叙事组合成一个可持续生长的个人系统。
+          </p>
+          <p data-i18n="about.p2">
+            目前 base 纽约，持续构建自己的 App、网页、工具、视觉系统与影像档案，也接受合适的项目合作。
+          </p>
+          <div class="signal-list">
+            <div class="signal-item"><span data-i18n="about.signal1Key">Location</span><span data-i18n="about.signal1Value">New York</span></div>
+            <div class="signal-item"><span data-i18n="about.signal2Key">Focus</span><span data-i18n="about.signal2Value">Software / Tools / Visual System</span></div>
+            <div class="signal-item"><span data-i18n="about.signal3Key">Style</span><span data-i18n="about.signal3Value">Minimal / Tech / Cinematic</span></div>
+          </div>
+        </div>
+
+        <div class="terminal-panel reveal" id="contact">
+          <div class="terminal-header">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="terminal-title">contact-terminal</span>
+          </div>
+          <div class="terminal-line"><span class="prompt">$</span> <span class="cmd">whoami</span></div>
+          <div class="terminal-line" data-i18n="terminal.whoami">叶璨源 / YE CANYUAN / Creative Developer</div>
+          <div class="terminal-line"><span class="prompt">$</span> <span class="cmd">open channels</span></div>
+          <div class="terminal-line" data-i18n="terminal.channels">Email, GitHub, Behance, Instagram</div>
+          <div class="terminal-line"><span class="prompt">$</span> <span class="cmd">status</span></div>
+          <div class="terminal-line" data-i18n="terminal.status">Available for selected collaborations and portfolio opportunities.</div>
+
+          <div class="terminal-links">
+            <a href="mailto:fjyecy@gmail.com">📧 fjyecy@gmail.com</a>
+            <a href="#" aria-label="GitHub link placeholder">GitHub ↗</a>
+            <a href="#" aria-label="Behance link placeholder">Behance ↗</a>
+            <a href="#" aria-label="Instagram link placeholder">Instagram ↗</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer data-i18n="footer">
+    © 2026 叶璨源 · Creative Systems Portfolio · 程序 / 工具 / UI/UX / 摄影 / 绘画 / 动态影像
+  </footer>
+
+  <div id="imageModal" class="modal" aria-hidden="true" role="dialog" aria-label="Image preview">
+    <span class="modal-close" role="button" tabindex="0" aria-label="Close preview">&times;</span>
+    <img id="modalImage" src="" alt="Preview" />
+  </div>
+
+  <script>
+    const i18n = {
+      zh: {
+        nav: { featured: "核心项目", archive: "作品档案", about: "关于", contact: "联系" },
+        hero: {
+          eyebrow: "Portfolio / Software / Tools / Visual",
+          titleA: "Creative",
+          titleB: "Systems",
+          copy: "我是 <strong>叶璨源</strong>。我用代码搭建系统，用工具解决问题，用界面组织体验，用摄影、绘画与动态影像保存视觉记忆。",
+          primaryCta: "进入创作轨道 →",
+          secondaryCta: "查看全部作品",
+          contactCta: "联系合作",
+          metric1Title: "Software",
+          metric1Desc: "App / Web / Systems",
+          metric2Title: "Tools",
+          metric2Desc: "CLI / Automation / AI Utilities",
+          metric3Title: "Visual",
+          metric3Desc: "UI/UX / Photo / Art / Motion"
         },
-        {
-            title: "任务管理 CLI 工具",
-            category: "code",
-            img: "images/code-cli.png",
-            desc: "Rust 编写的命令行待办工具，支持数据持久化。",
-            link: "https://github.com/yourname/todo-cli",
-            linkText: "查看源码"
+        holo: {
+          card1Title: "01 / Software",
+          card1Desc: "Interfaces, products and systems.",
+          card2Title: "02 / Tools",
+          card2Desc: "Small utilities with sharp purpose.",
+          card3Title: "03 / Visual",
+          card3Desc: "UI, photo, art and motion archive."
         },
-        // 设计作品
-        {
-            title: "品牌 VI 设计 - 山野茶室",
-            category: "design",
-            img: "images/design-branding.jpg",
-            desc: "Logo、包装、菜单版式系统，东方极简风格。",
-            link: "#",
-            linkText: "查看全案"
+        featured: {
+          kicker: "Featured Systems",
+          title: "核心项目",
+          desc: "这里优先展示能体现综合能力的项目：产品意识、技术实现、界面体验、视觉系统与可展示成果。"
         },
-        {
-            title: "移动端天气 App 界面",
-            category: "design",
-            img: "images/design-weather.jpg",
-            desc: "高保真原型，深色模式动效演示。",
-            link: "#",
-            linkText: "Figma 社区"
+        archive: {
+          kicker: "Creative Archive",
+          title: "作品档案馆",
+          desc: "作品区块重新划分为程序、工具、UI/UX、摄影、绘画与动态影像。中英文切换会同步更新筛选、卡片、项目说明与导航文案。"
         },
-        // 摄影
-        {
-            title: "弄堂光影",
-            category: "photo",
-            img: "images/photo-alley.jpg",
-            desc: "上海老弄堂，Leica M10 黑白胶片模拟。",
-            link: "#",
-            linkText: "更多"
+        about: {
+          kicker: "About Me",
+          title: "关于我",
+          p1: "我是叶璨源，一个全栈开发者与视觉创作者。我关注的不只是“做出一个页面”或“完成一张图片”，而是如何把技术、审美、交互和叙事组合成一个可持续生长的个人系统。",
+          p2: "目前 base 纽约，持续构建自己的 App、网页、工具、视觉系统与影像档案，也接受合适的项目合作。",
+          signal1Key: "Location",
+          signal1Value: "New York",
+          signal2Key: "Focus",
+          signal2Value: "Software / Tools / Visual System",
+          signal3Key: "Style",
+          signal3Value: "Minimal / Tech / Cinematic"
         },
-        {
-            title: "冰岛·极光",
-            category: "photo",
-            img: "images/photo-aurora.jpg",
-            desc: "长曝光作品，2025 年冬。",
-            link: "#",
-            linkText: "原图故事"
+        terminal: {
+          whoami: "叶璨源 / YE CANYUAN / Creative Developer",
+          channels: "Email, GitHub, Behance, Instagram",
+          status: "Available for selected collaborations and portfolio opportunities."
         },
-        // 画作
-        {
-            title: "数字绘画 · 赛博朋克 2077",
-            category: "art",
-            img: "images/art-cyber.jpg",
-            desc: "Procreate 绘制，耗时 20h。",
-            link: "#",
-            linkText: "绘画过程"
+        misc: {
+          empty: "暂无此类作品，稍后添加 ✨",
+          preview: "查看预览",
+          videoLabel: "动态影像"
         },
-        {
-            title: "水彩 · 江南古镇",
-            category: "art",
-            img: "images/art-watercolor.jpg",
-            desc: "纸本水彩，2024 年个人收藏。",
-            link: "#",
-            linkText: "原作可售"
-        }
+        footer: "© 2026 叶璨源 · Creative Systems Portfolio · 程序 / 工具 / UI/UX / 摄影 / 绘画 / 动态影像"
+      },
+      en: {
+        nav: { featured: "Featured", archive: "Archive", about: "About", contact: "Contact" },
+        hero: {
+          eyebrow: "Portfolio / Software / Tools / Visual",
+          titleA: "Creative",
+          titleB: "Systems",
+          copy: "I am <strong>Ye Canyuan</strong>. I build systems with code, solve problems with tools, shape experiences with interfaces, and preserve visual memory through photography, art and motion.",
+          primaryCta: "Enter the orbit →",
+          secondaryCta: "View all works",
+          contactCta: "Contact",
+          metric1Title: "Software",
+          metric1Desc: "App / Web / Systems",
+          metric2Title: "Tools",
+          metric2Desc: "CLI / Automation / AI Utilities",
+          metric3Title: "Visual",
+          metric3Desc: "UI/UX / Photo / Art / Motion"
+        },
+        holo: {
+          card1Title: "01 / Software",
+          card1Desc: "Interfaces, products and systems.",
+          card2Title: "02 / Tools",
+          card2Desc: "Small utilities with sharp purpose.",
+          card3Title: "03 / Visual",
+          card3Desc: "UI, photo, art and motion archive."
+        },
+        featured: {
+          kicker: "Featured Systems",
+          title: "Featured Projects",
+          desc: "A focused selection of projects that show product thinking, implementation, interface design, visual systems and presentable outcomes."
+        },
+        archive: {
+          kicker: "Creative Archive",
+          title: "Work Archive",
+          desc: "The archive is reorganized into Software, Tools, UI/UX, Photography, Art and Motion. The language switch updates filters, cards, descriptions and navigation text."
+        },
+        about: {
+          kicker: "About Me",
+          title: "About Me",
+          p1: "I am Ye Canyuan, a full-stack developer and visual creator. I care not only about building a page or finishing an image, but about combining technology, aesthetics, interaction and narrative into a personal system that can keep evolving.",
+          p2: "Currently based in New York, I am building apps, web projects, tools, visual systems and image archives, while staying open to selected collaborations.",
+          signal1Key: "Location",
+          signal1Value: "New York",
+          signal2Key: "Focus",
+          signal2Value: "Software / Tools / Visual System",
+          signal3Key: "Style",
+          signal3Value: "Minimal / Tech / Cinematic"
+        },
+        terminal: {
+          whoami: "YE CANYUAN / Creative Developer",
+          channels: "Email, GitHub, Behance, Instagram",
+          status: "Available for selected collaborations and portfolio opportunities."
+        },
+        misc: {
+          empty: "No works in this category yet ✨",
+          preview: "Preview",
+          videoLabel: "Motion"
+        },
+        footer: "© 2026 Ye Canyuan · Creative Systems Portfolio · Software / Tools / UI/UX / Photo / Art / Motion"
+      }
+    };
+
+    const categories = [
+      { key: "all", icon: "✦", label: { zh: "全部作品", en: "All Works" }, desc: { zh: "所有创作轨道", en: "All creative tracks" } },
+      { key: "software", icon: "💻", label: { zh: "程序项目", en: "Software" }, desc: { zh: "App、网站、系统工程", en: "Apps, websites and systems" } },
+      { key: "tools", icon: "🧰", label: { zh: "工具实验", en: "Tools" }, desc: { zh: "CLI、自动化、效率工具", en: "CLI, automation and utilities" } },
+      { key: "uiux", icon: "🧭", label: { zh: "UI/UX", en: "UI/UX" }, desc: { zh: "界面、交互、设计系统", en: "Interfaces and design systems" } },
+      { key: "photo", icon: "📷", label: { zh: "摄影", en: "Photography" }, desc: { zh: "街拍、风景、纪实影像", en: "Street, landscape and documentary" } },
+      { key: "art", icon: "🖌️", label: { zh: "绘画", en: "Art" }, desc: { zh: "数字绘画、水彩、插画", en: "Digital art, watercolor and illustration" } },
+      { key: "motion", icon: "🎞️", label: { zh: "动态影像", en: "Motion" }, desc: { zh: "短片、剪辑、动态视觉", en: "Short films, edits and motion visuals" } }
     ];
 
-    // 渲染函数
-    function renderGallery(category) {
-        const container = document.getElementById('galleryContainer');
-        const filtered = category === 'all' ? works : works.filter(w => w.category === category);
-        
-        if (filtered.length === 0) {
-            container.innerHTML = `<p style="grid-column:1/-1; text-align:center;">暂无此类作品，稍后添加 ✨</p>`;
-            return;
-        }
+    const marqueeItems = ["Software Systems", "Tooling Lab", "UI/UX Design", "Photography Archive", "Art Studies", "Motion Works"];
 
-        let html = '';
-        for (let work of filtered) {
-            // 分类中文显示
-            let catChinese = '';
-            if (work.category === 'code') catChinese = '编程项目';
-            else if (work.category === 'design') catChinese = '设计';
-            else if (work.category === 'photo') catChinese = '摄影';
-            else if (work.category === 'art') catChinese = '画作';
-            
-            html += `
-                <div class="card" data-category="${work.category}">
-                    <img class="card-img" src="${work.img}" alt="${work.title}" loading="lazy" onclick="openModal(this.src)">
-                    <div class="card-content">
-                        <div class="card-category">${catChinese}</div>
-                        <div class="card-title">${work.title}</div>
-                        <div class="card-desc">${work.desc}</div>
-                        ${work.link !== '#' ? `<a href="${work.link}" target="_blank" class="card-link" onclick="event.stopPropagation()">${work.linkText || '访问链接'} →</a>` : ''}
-                    </div>
-                </div>
-            `;
-        }
-        container.innerHTML = html;
+    const featuredProjects = [
+      {
+        size: "large",
+        index: "01",
+        status: { zh: "In Progress", en: "In Progress" },
+        type: { zh: "Cross-platform App", en: "Cross-platform App" },
+        title: { zh: "声藏 · SilNest", en: "SilNest" },
+        desc: {
+          zh: "一个面向本地音乐收藏的跨平台播放器概念：强调本地文件、跨设备传输、沉浸式播放界面与统一视觉语言。",
+          en: "A cross-platform local music player concept focused on local collections, cross-device transfer, immersive playback and a unified visual language."
+        },
+        tags: ["SwiftUI", "Android", "Local Audio", "UI System", "Motion Design"],
+        bg: "SilNest"
+      },
+      {
+        size: "medium",
+        index: "02",
+        status: { zh: "Live Prototype", en: "Live Prototype" },
+        type: { zh: "Web Identity", en: "Web Identity" },
+        title: { zh: "Orbit Portfolio", en: "Orbit Portfolio" },
+        desc: {
+          zh: "当前主页的升级版本：以创作轨道为隐喻，将程序、工具、UI/UX、摄影、绘画与动态影像组合成个人数字实验室。",
+          en: "The upgraded portfolio, using creative orbits as a metaphor for software, tools, UI/UX, photography, art and motion."
+        },
+        tags: ["HTML", "CSS 3D", "Canvas", "JavaScript", "i18n"],
+        bg: "Orbit"
+      },
+      {
+        size: "small",
+        index: "03",
+        status: { zh: "Tool", en: "Tool" },
+        type: { zh: "Utility", en: "Utility" },
+        title: { zh: "效率工具实验", en: "Utility Experiments" },
+        desc: {
+          zh: "以小型工具体现解决问题能力：命令行、自动化、文件处理、AI 辅助与个人工作流优化。",
+          en: "Small utilities that demonstrate practical problem-solving through CLI, automation, file processing, AI assistance and workflow optimization."
+        },
+        tags: ["CLI", "Automation", "AI Utility"],
+        bg: "Tools"
+      },
+      {
+        size: "small",
+        index: "04",
+        status: { zh: "Design", en: "Design" },
+        type: { zh: "Interface", en: "Interface" },
+        title: { zh: "界面体验系统", en: "Interface Systems" },
+        desc: {
+          zh: "从移动端界面、图标、交互状态与视觉语言出发，构建可延展的 UI/UX 案例。",
+          en: "Interface and UX cases built from mobile screens, icons, interaction states and scalable visual languages."
+        },
+        tags: ["UI/UX", "Prototype", "Design System"],
+        bg: "UI"
+      },
+      {
+        size: "small",
+        index: "05",
+        status: { zh: "Visual", en: "Visual" },
+        type: { zh: "Image Archive", en: "Image Archive" },
+        title: { zh: "视觉创作档案", en: "Visual Archive" },
+        desc: {
+          zh: "将摄影、绘画与动态影像从单张作品升级为具有主题、时间线与叙事感的视觉记忆库。",
+          en: "Turning photography, art and motion from isolated works into a visual memory archive with themes, timelines and narrative structure."
+        },
+        tags: ["Photography", "Art", "Motion"],
+        bg: "IMG"
+      }
+    ];
+
+    const works = [
+      {
+        title: { zh: "声藏 · SilNest", en: "SilNest" },
+        category: "software",
+        mediaType: "image",
+        img: "images/silnest-cover.png",
+        desc: {
+          zh: "跨平台本地音乐播放器，强调本地收藏、沉浸播放界面与统一视觉语言。",
+          en: "A cross-platform local music player focused on local collections, immersive playback and a unified visual language."
+        },
+        link: "#",
+        linkText: { zh: "查看项目", en: "View Project" },
+        tags: ["SwiftUI", "Android", "Local Audio", "UI System"]
+      },
+      {
+        title: { zh: "个人作品集系统", en: "Personal Portfolio System" },
+        category: "software",
+        mediaType: "image",
+        img: "images/portfolio-system.png",
+        desc: {
+          zh: "以创作轨道为核心概念的个人主页，包含粒子背景、3D 视觉、作品筛选与双语切换。",
+          en: "A portfolio built around creative orbits, with particles, 3D visuals, archive filtering and bilingual switching."
+        },
+        link: "#",
+        linkText: { zh: "查看演示", en: "Live Demo" },
+        tags: ["HTML", "CSS", "JavaScript", "i18n"]
+      },
+      {
+        title: { zh: "任务管理 CLI 工具", en: "Task Manager CLI" },
+        category: "tools",
+        mediaType: "image",
+        img: "images/tool-cli.png",
+        desc: {
+          zh: "命令行待办工具，支持任务状态、数据持久化与快捷搜索。",
+          en: "A command-line task manager with task states, data persistence and quick search."
+        },
+        link: "https://github.com/yourname/todo-cli",
+        linkText: { zh: "查看源码", en: "Source Code" },
+        tags: ["Rust", "CLI", "Persistence"]
+      },
+      {
+        title: { zh: "批量文件整理器", en: "Batch File Organizer" },
+        category: "tools",
+        mediaType: "image",
+        img: "images/tool-file-organizer.png",
+        desc: {
+          zh: "用于整理图片、音频与文档的自动化脚本，可按类型、日期与命名规则批量归档。",
+          en: "An automation script for organizing images, audio and documents by type, date and naming rules."
+        },
+        link: "#",
+        linkText: { zh: "查看说明", en: "Read More" },
+        tags: ["Python", "Automation", "Workflow"]
+      },
+      {
+        title: { zh: "移动端天气 App 界面", en: "Mobile Weather App UI" },
+        category: "uiux",
+        mediaType: "image",
+        img: "images/ui-weather.jpg",
+        desc: {
+          zh: "高保真移动端界面，包含深色模式、天气状态视觉与微交互设计。",
+          en: "A high-fidelity mobile interface with dark mode, weather state visuals and micro-interactions."
+        },
+        link: "#",
+        linkText: { zh: "查看原型", en: "View Prototype" },
+        tags: ["Mobile UI", "Dark Mode", "Prototype"]
+      },
+      {
+        title: { zh: "品牌图标系统", en: "Brand Icon System" },
+        category: "uiux",
+        mediaType: "image",
+        img: "images/ui-icon-system.png",
+        desc: {
+          zh: "围绕应用品牌构建的图标系统，包含符号、色彩、圆角、光影与跨平台适配规则。",
+          en: "An app icon system covering symbol, color, radius, lighting and cross-platform adaptation rules."
+        },
+        link: "#",
+        linkText: { zh: "查看全案", en: "Case Study" },
+        tags: ["Icon", "Branding", "Design System"]
+      },
+      {
+        title: { zh: "弄堂光影", en: "Light in the Alley" },
+        category: "photo",
+        mediaType: "image",
+        img: "images/photo-alley.jpg",
+        desc: {
+          zh: "城市街巷摄影，关注光线、阴影、墙面纹理与日常生活的瞬间结构。",
+          en: "Urban street photography focused on light, shadow, wall textures and the structure of everyday moments."
+        },
+        link: "#",
+        linkText: { zh: "查看系列", en: "View Series" },
+        tags: ["Street", "B&W", "Urban"]
+      },
+      {
+        title: { zh: "冰岛 · 极光", en: "Iceland Aurora" },
+        category: "photo",
+        mediaType: "image",
+        img: "images/photo-aurora.jpg",
+        desc: {
+          zh: "长曝光风景作品，记录寒冷夜空中的极光轨迹与地景层次。",
+          en: "Long-exposure landscape work capturing aurora movement and layered night scenery."
+        },
+        link: "#",
+        linkText: { zh: "原图故事", en: "Story" },
+        tags: ["Landscape", "Long Exposure", "Travel"]
+      },
+      {
+        title: { zh: "数字绘画 · 赛博城市", en: "Digital Painting · Cyber City" },
+        category: "art",
+        mediaType: "image",
+        img: "images/art-cyber.jpg",
+        desc: {
+          zh: "Procreate 绘制的霓虹城市练习，关注角色剪影、空间透视与高反差色彩。",
+          en: "A Procreate neon city study focused on character silhouette, spatial perspective and high-contrast color."
+        },
+        link: "#",
+        linkText: { zh: "绘画过程", en: "Process" },
+        tags: ["Procreate", "Cyberpunk", "Illustration"]
+      },
+      {
+        title: { zh: "水彩 · 江南古镇", en: "Watercolor · Jiangnan Town" },
+        category: "art",
+        mediaType: "image",
+        img: "images/art-watercolor.jpg",
+        desc: {
+          zh: "纸本水彩练习，尝试用低饱和色调表现江南水乡的湿润空气与建筑层次。",
+          en: "A watercolor study using low-saturation tones to express humid air and architectural layers in a Jiangnan water town."
+        },
+        link: "#",
+        linkText: { zh: "查看作品", en: "View Work" },
+        tags: ["Watercolor", "Paper", "Landscape"]
+      },
+      {
+        title: { zh: "城市夜行 · 影像短片", en: "Night Walk · Short Video" },
+        category: "motion",
+        mediaType: "video",
+        img: "images/motion-night-walk.jpg",
+        video: "videos/motion-night-walk.mp4",
+        desc: {
+          zh: "围绕城市夜景、霓虹反光与步行节奏剪辑的氛围短片。",
+          en: "An atmospheric short edit built around city nights, neon reflections and walking rhythm."
+        },
+        link: "#",
+        linkText: { zh: "观看视频", en: "Watch Video" },
+        tags: ["Short Film", "Edit", "Night"]
+      },
+      {
+        title: { zh: "音乐可视化实验", en: "Music Visualizer Experiment" },
+        category: "motion",
+        mediaType: "video",
+        img: "images/motion-visualizer.jpg",
+        video: "videos/music-visualizer.mp4",
+        desc: {
+          zh: "把声音频谱、粒子、光轨与动态图形结合的视觉实验，可作为音乐 App 宣传素材。",
+          en: "A visual experiment combining audio spectrum, particles, light trails and motion graphics for music-app promotion."
+        },
+        link: "#",
+        linkText: { zh: "查看实验", en: "View Experiment" },
+        tags: ["Motion", "Audio Visual", "Particles"]
+      }
+    ];
+
+    let currentLang = localStorage.getItem("portfolioLang") || "zh";
+    let currentCategory = "all";
+
+    function t(path) {
+      return path.split(".").reduce((acc, key) => acc && acc[key], i18n[currentLang]) ?? path;
     }
 
-    // 图片放大弹窗
-    function openModal(src) {
-        const modal = document.getElementById('imageModal');
-        const modalImg = document.getElementById('modalImage');
-        modal.style.display = 'flex';
-        modalImg.src = src;
+    function localized(value) {
+      if (value && typeof value === "object") return value[currentLang] || value.zh || value.en || "";
+      return value ?? "";
     }
-    window.openModal = openModal;
 
-    // 关闭弹窗
-    document.querySelector('.modal-close').onclick = () => {
-        document.getElementById('imageModal').style.display = 'none';
-    };
-    document.getElementById('imageModal').onclick = (e) => {
-        if (e.target === document.getElementById('imageModal')) {
-            document.getElementById('imageModal').style.display = 'none';
-        }
-    };
+    function escapeHTML(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
 
-    // 筛选按钮交互
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            filterBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const category = btn.getAttribute('data-category');
-            renderGallery(category);
+    function applyLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem("portfolioLang", lang);
+      document.documentElement.dataset.lang = lang;
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      document.title = lang === "zh" ? "叶璨源 · Creative Systems Portfolio" : "Ye Canyuan · Creative Systems Portfolio";
+
+      document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+      document.querySelectorAll("[data-i18n-html]").forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
+
+      renderMarquee();
+      renderFeatured();
+      renderCategoryOverview();
+      renderFilters();
+      renderGallery(currentCategory);
+    }
+
+    function renderMarquee() {
+      const track = document.getElementById("marqueeTrack");
+      track.innerHTML = [...marqueeItems, ...marqueeItems].map(item => `<span>${escapeHTML(item)}</span>`).join("");
+    }
+
+    function renderFeatured() {
+      const grid = document.getElementById("featuredGrid");
+      grid.innerHTML = featuredProjects.map(project => `
+        <article class="feature-card ${escapeHTML(project.size)} tilt-card reveal is-visible">
+          <div class="feature-top">
+            <span>${escapeHTML(project.index)} / ${escapeHTML(localized(project.type))}</span>
+            <span class="status-pill">${escapeHTML(localized(project.status))}</span>
+          </div>
+          <h3>${escapeHTML(localized(project.title))}</h3>
+          <p>${escapeHTML(localized(project.desc))}</p>
+          <div class="tech-list">${project.tags.map(tag => `<span>${escapeHTML(tag)}</span>`).join("")}</div>
+          <div class="feature-bg-word">${escapeHTML(project.bg)}</div>
+        </article>
+      `).join("");
+      bindTiltCards(grid);
+    }
+
+    function renderCategoryOverview() {
+      const overview = document.getElementById("categoryOverview");
+      const visible = categories.filter(cat => cat.key !== "all");
+
+      overview.innerHTML = visible.map(cat => `
+        <button class="category-chip" type="button" data-category="${escapeHTML(cat.key)}">
+          <span class="icon">${cat.icon}</span>
+          <b>${escapeHTML(localized(cat.label))}</b>
+          <span>${escapeHTML(localized(cat.desc))}</span>
+        </button>
+      `).join("");
+
+      overview.querySelectorAll(".category-chip").forEach(chip => {
+        chip.addEventListener("click", () => {
+          currentCategory = chip.dataset.category;
+          renderFilters();
+          renderGallery(currentCategory);
+          document.getElementById("galleryContainer").scrollIntoView({ behavior: "smooth", block: "start" });
         });
+      });
+    }
+
+    function renderFilters() {
+      const filterButtons = document.getElementById("filterButtons");
+      filterButtons.innerHTML = categories.map(cat => `
+        <button class="filter-btn ${cat.key === currentCategory ? "active" : ""}" data-category="${escapeHTML(cat.key)}" type="button">
+          ${cat.icon} ${escapeHTML(localized(cat.label))}
+        </button>
+      `).join("");
+
+      filterButtons.querySelectorAll(".filter-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          currentCategory = btn.dataset.category;
+          renderFilters();
+          renderGallery(currentCategory);
+        });
+      });
+    }
+
+    function getCategory(key) {
+      return categories.find(cat => cat.key === key) || categories[0];
+    }
+
+    function renderGallery(category = "all") {
+      const container = document.getElementById("galleryContainer");
+      const filtered = category === "all" ? works : works.filter(work => work.category === category);
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="empty-state">${escapeHTML(t("misc.empty"))}</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(work => {
+        const cat = getCategory(work.category);
+        const safeTitle = escapeHTML(localized(work.title));
+        const safeDesc = escapeHTML(localized(work.desc));
+        const safeImg = escapeHTML(work.img || "");
+        const linkText = localized(work.linkText) || t("misc.preview");
+
+        const mediaHTML = work.mediaType === "video"
+          ? `
+            <div class="img-fallback">${safeTitle}</div>
+            <video class="card-video" poster="${safeImg}" muted loop playsinline preload="metadata" onerror="this.style.display='none'">
+              <source src="${escapeHTML(work.video || "")}" type="video/mp4">
+            </video>
+            <span class="video-badge">${escapeHTML(t("misc.videoLabel"))}</span>
+          `
+          : `
+            <div class="img-fallback">${safeTitle}</div>
+            <img class="card-img" src="${safeImg}" alt="${safeTitle}" loading="lazy" decoding="async" onerror="this.style.display='none'">
+          `;
+
+        const mediaClick = work.mediaType === "video" ? "" : `onclick='openModal(${JSON.stringify(work.img || "")})'`;
+
+        const linkHTML = work.link && work.link !== "#"
+          ? `<a href="${escapeHTML(work.link)}" target="_blank" rel="noopener noreferrer" class="card-link" onclick="event.stopPropagation()">${escapeHTML(linkText)} →</a>`
+          : `<span class="card-link" aria-hidden="true">${escapeHTML(linkText)} →</span>`;
+
+        const tagsHTML = Array.isArray(work.tags) && work.tags.length
+          ? `<div class="card-tags">${work.tags.map(tag => `<span>${escapeHTML(tag)}</span>`).join("")}</div>`
+          : "";
+
+        return `
+          <article class="card tilt-card reveal is-visible" data-category="${escapeHTML(work.category)}">
+            <div class="card-media" ${mediaClick}>${mediaHTML}</div>
+            <div class="card-content">
+              <div class="card-category">${cat.icon} ${escapeHTML(localized(cat.label))}</div>
+              <div class="card-title">${safeTitle}</div>
+              <div class="card-desc">${safeDesc}</div>
+              ${tagsHTML}
+              <div class="card-bottom">${linkHTML}</div>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      bindTiltCards(container);
+      bindVideoHover(container);
+    }
+
+    function bindVideoHover(scope = document) {
+      scope.querySelectorAll(".card-video").forEach(video => {
+        const card = video.closest(".card");
+        if (!card || video.dataset.videoBound === "true") return;
+        video.dataset.videoBound = "true";
+        card.addEventListener("mouseenter", () => { video.play().catch(() => {}); });
+        card.addEventListener("mouseleave", () => { video.pause(); video.currentTime = 0; });
+      });
+    }
+
+    const modal = document.getElementById("imageModal");
+    const modalImage = document.getElementById("modalImage");
+    const closeModalBtn = document.querySelector(".modal-close");
+
+    function openModal(src) {
+      if (!src) return;
+      modal.classList.add("is-open");
+      modal.setAttribute("aria-hidden", "false");
+      modalImage.src = src;
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeModal() {
+      modal.classList.remove("is-open");
+      modal.setAttribute("aria-hidden", "true");
+      modalImage.src = "";
+      document.body.style.overflow = "";
+    }
+
+    window.openModal = openModal;
+    closeModalBtn.addEventListener("click", closeModal);
+    closeModalBtn.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") closeModal(); });
+    modal.addEventListener("click", event => { if (event.target === modal) closeModal(); });
+    window.addEventListener("keydown", event => { if (event.key === "Escape" && modal.classList.contains("is-open")) closeModal(); });
+
+    document.getElementById("langToggle").addEventListener("click", () => {
+      applyLanguage(currentLang === "zh" ? "en" : "zh");
     });
 
-    // 初始渲染全部
-    renderGallery('all');
-</script>
+    window.addEventListener("pointermove", event => {
+      document.documentElement.style.setProperty("--mouse-x", `${event.clientX}px`);
+      document.documentElement.style.setProperty("--mouse-y", `${event.clientY}px`);
+    }, { passive: true });
+
+    function bindTiltCards(scope = document) {
+      scope.querySelectorAll(".tilt-card").forEach(card => {
+        if (card.dataset.tiltBound === "true") return;
+        card.dataset.tiltBound = "true";
+
+        card.addEventListener("pointermove", event => {
+          const rect = card.getBoundingClientRect();
+          const x = event.clientX - rect.left;
+          const y = event.clientY - rect.top;
+          const px = x / rect.width;
+          const py = y / rect.height;
+          const rotateX = (0.5 - py) * 8;
+          const rotateY = (px - 0.5) * 10;
+
+          card.style.setProperty("--mx", `${px * 100}%`);
+          card.style.setProperty("--my", `${py * 100}%`);
+          card.style.transform = `perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+        });
+
+        card.addEventListener("pointerleave", () => {
+          card.style.transform = "";
+          card.style.setProperty("--mx", "50%");
+          card.style.setProperty("--my", "0%");
+        });
+      });
+    }
+
+    const revealObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: .12 });
+
+    document.querySelectorAll(".reveal").forEach(el => {
+      if (!el.classList.contains("is-visible")) revealObserver.observe(el);
+    });
+
+    const visualShell = document.getElementById("visualShell");
+    window.addEventListener("pointermove", event => {
+      const x = (event.clientX / window.innerWidth - .5) * 2;
+      const y = (event.clientY / window.innerHeight - .5) * 2;
+      visualShell.style.transform = `rotateY(${x * 5}deg) rotateX(${-y * 4}deg)`;
+    }, { passive: true });
+    window.addEventListener("pointerleave", () => { visualShell.style.transform = ""; });
+
+    const canvas = document.getElementById("particleCanvas");
+    const ctx = canvas.getContext("2d", { alpha: true });
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let particles = [];
+    let width = 0;
+    let height = 0;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const pointer = { x: 0, y: 0, active: false };
+
+    function resizeCanvas() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const count = Math.min(96, Math.max(42, Math.floor(width * height / 18000)));
+      particles = Array.from({ length: count }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - .5) * .28,
+        vy: (Math.random() - .5) * .28,
+        r: Math.random() * 1.8 + .5,
+        alpha: Math.random() * .5 + .22
+      }));
+    }
+
+    function drawParticles() {
+      ctx.clearRect(0, 0, width, height);
+
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < -20) p.x = width + 20;
+        if (p.x > width + 20) p.x = -20;
+        if (p.y < -20) p.y = height + 20;
+        if (p.y > height + 20) p.y = -20;
+
+        if (pointer.active) {
+          const dx = pointer.x - p.x;
+          const dy = pointer.y - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            p.x -= dx * .002;
+            p.y -= dy * .002;
+          }
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(148,226,255,${p.alpha})`;
+        ctx.fill();
+      }
+
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const a = particles[i];
+          const b = particles[j];
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 118) {
+            const alpha = (1 - dist / 118) * .18;
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(125,211,252,${alpha})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+
+      requestAnimationFrame(drawParticles);
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("pointermove", event => {
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+      pointer.active = true;
+    }, { passive: true });
+    window.addEventListener("pointerleave", () => { pointer.active = false; });
+
+    applyLanguage(currentLang);
+    bindTiltCards(document);
+
+    if (!reducedMotion) {
+      resizeCanvas();
+      drawParticles();
+    }
+  </script>
 </body>
 </html>
