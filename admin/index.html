@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio CMS Admin</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">CMS</div>
+        <div>
+          <h1>Portfolio CMS</h1>
+          <p>个人作品集内容管理系统</p>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-btn active" data-panel="worksPanel">作品管理</button>
+        <button class="nav-btn" data-panel="jsonPanel">JSON 预览</button>
+        <button class="nav-btn" data-panel="helpPanel">使用说明</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p>Phase 2 · Local CMS</p>
+        <p>当前版本：手动导出 works.json</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2>作品管理</h2>
+          <p>新增、编辑、删除作品，并导出新的 works.json。</p>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="btn ghost" id="reloadBtn">重新读取</button>
+          <button class="btn primary" id="exportBtn">导出 works.json</button>
+        </div>
+      </header>
+
+      <section class="panel active" id="worksPanel">
+        <div class="layout">
+          <section class="card list-card">
+            <div class="card-head">
+              <h3>作品列表</h3>
+              <button class="btn small" id="newWorkBtn">+ 新增作品</button>
+            </div>
+
+            <div class="work-list" id="workList"></div>
+          </section>
+
+          <section class="card editor-card">
+            <div class="card-head">
+              <h3 id="editorTitle">新增作品</h3>
+              <button class="btn danger small" id="deleteBtn">删除</button>
+            </div>
+
+            <form id="workForm" class="form">
+              <input type="hidden" id="workId" />
+
+              <div class="grid two">
+                <label>
+                  Slug / ID
+                  <input id="slug" type="text" placeholder="silnest" required />
+                </label>
+
+                <label>
+                  分类
+                  <select id="category" required>
+                    <option value="software">程序项目 / Software</option>
+                    <option value="tools">工具实验 / Tools</option>
+                    <option value="uiux">UI/UX</option>
+                    <option value="photo">摄影 / Photography</option>
+                    <option value="art">绘画 / Art</option>
+                    <option value="motion">动态影像 / Motion</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="grid two">
+                <label>
+                  中文标题
+                  <input id="titleZh" type="text" placeholder="声藏 · SilNest" required />
+                </label>
+
+                <label>
+                  English Title
+                  <input id="titleEn" type="text" placeholder="SilNest" required />
+                </label>
+              </div>
+
+              <label>
+                中文描述
+                <textarea id="descZh" rows="3" placeholder="输入中文项目描述"></textarea>
+              </label>
+
+              <label>
+                English Description
+                <textarea id="descEn" rows="3" placeholder="Write English project description"></textarea>
+              </label>
+
+              <div class="grid two">
+                <label>
+                  媒体类型
+                  <select id="mediaType">
+                    <option value="image">图片 / Image</option>
+                    <option value="video">视频 / Video</option>
+                  </select>
+                </label>
+
+                <label>
+                  排序 Order
+                  <input id="order" type="number" value="1" />
+                </label>
+              </div>
+
+              <label>
+                封面路径 / Cover Path
+                <input id="img" type="text" placeholder="images/silnest-cover.webp" />
+              </label>
+
+              <label>
+                视频路径 / Video Path
+                <input id="video" type="text" placeholder="videos/night-walk.mp4" />
+              </label>
+
+              <div class="grid two">
+                <label>
+                  链接
+                  <input id="link" type="text" placeholder="https://github.com/..." />
+                </label>
+
+                <label>
+                  标签 Tags
+                  <input id="tags" type="text" placeholder="SwiftUI, Android, UI System" />
+                </label>
+              </div>
+
+              <div class="grid two">
+                <label>
+                  中文按钮文案
+                  <input id="linkTextZh" type="text" placeholder="查看项目" />
+                </label>
+
+                <label>
+                  English Button Text
+                  <input id="linkTextEn" type="text" placeholder="View Project" />
+                </label>
+              </div>
+
+              <div class="checks">
+                <label class="check">
+                  <input id="featured" type="checkbox" />
+                  Featured 核心项目
+                </label>
+
+                <label class="check">
+                  <input id="published" type="checkbox" checked />
+                  Published 发布
+                </label>
+              </div>
+
+              <div class="form-actions">
+                <button class="btn ghost" type="button" id="resetBtn">清空表单</button>
+                <button class="btn primary" type="submit">保存到本地列表</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel" id="jsonPanel">
+        <section class="card">
+          <div class="card-head">
+            <h3>JSON 预览</h3>
+            <div>
+              <button class="btn small" id="copyJsonBtn">复制 JSON</button>
+              <button class="btn small primary" id="downloadJsonBtn">下载 works.json</button>
+            </div>
+          </div>
+
+          <pre class="json-preview" id="jsonPreview"></pre>
+        </section>
+      </section>
+
+      <section class="panel" id="helpPanel">
+        <section class="card help">
+          <h3>当前阶段如何使用</h3>
+          <ol>
+            <li>点击「新增作品」，填写表单。</li>
+            <li>点击「保存到本地列表」。</li>
+            <li>点击「JSON 预览」检查数据。</li>
+            <li>点击「下载 works.json」。</li>
+            <li>把下载的文件替换项目里的 <code>data/works.json</code>。</li>
+            <li>执行 <code>git add .</code>、<code>git commit</code>、<code>git push</code>。</li>
+          </ol>
+
+          <p>
+            下一阶段会加入 GitHub API，让「保存」按钮自动提交到 GitHub 仓库，
+            不再需要手动下载和替换 JSON。
+          </p>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
