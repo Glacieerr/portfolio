@@ -1,19 +1,19 @@
-function setCors(req, res) {
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || "*";
-
-  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-key");
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, x-admin-key"
+  };
 }
 
-function parseBody(req) {
-  if (!req.body) return {};
-
-  if (typeof req.body === "string") {
-    return JSON.parse(req.body);
-  }
-
-  return req.body;
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data, null, 2), {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      ...corsHeaders()
+    }
+  });
 }
 
 function requireEnv(name) {
@@ -35,29 +35,23 @@ function githubHeaders(token) {
   };
 }
 
-export default async function handler(req, res) {
-  setCors(req, res);
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders()
+  });
+}
 
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
-
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      ok: false,
-      error: "Method not allowed"
-    });
-  }
-
+export async function POST(request) {
   try {
-    const adminKey = req.headers["x-admin-key"];
+    const adminKey = request.headers.get("x-admin-key");
     const expectedAdminKey = requireEnv("ADMIN_KEY");
 
     if (!adminKey || adminKey !== expectedAdminKey) {
-      return res.status(401).json({
+      return json({
         ok: false,
         error: "Unauthorized"
-      });
+      }, 401);
     }
 
     const token = requireEnv("GITHUB_TOKEN");
@@ -66,15 +60,15 @@ export default async function handler(req, res) {
     const branch = process.env.GITHUB_BRANCH || "cms-v1";
     const filePath = process.env.GITHUB_FILE_PATH || "data/works.json";
 
-    const body = parseBody(req);
+    const body = await request.json();
     const works = body.works;
     const message = body.message || `cms: update works ${new Date().toISOString()}`;
 
     if (!Array.isArray(works)) {
-      return res.status(400).json({
+      return json({
         ok: false,
         error: "Invalid payload: works must be an array"
-      });
+      }, 400);
     }
 
     const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
@@ -87,11 +81,11 @@ export default async function handler(req, res) {
     if (!currentResponse.ok) {
       const detail = await currentResponse.text();
 
-      return res.status(currentResponse.status).json({
+      return json({
         ok: false,
         error: "Failed to read current works.json from GitHub",
         detail
-      });
+      }, currentResponse.status);
     }
 
     const currentFile = await currentResponse.json();
@@ -114,14 +108,14 @@ export default async function handler(req, res) {
     const updateResult = await updateResponse.json();
 
     if (!updateResponse.ok) {
-      return res.status(updateResponse.status).json({
+      return json({
         ok: false,
         error: "Failed to update works.json on GitHub",
         detail: updateResult
-      });
+      }, updateResponse.status);
     }
 
-    return res.status(200).json({
+    return json({
       ok: true,
       message: "Published to GitHub",
       branch,
@@ -130,9 +124,9 @@ export default async function handler(req, res) {
       commitUrl: updateResult.commit?.html_url || null
     });
   } catch (error) {
-    return res.status(500).json({
+    return json({
       ok: false,
       error: error.message || "Internal Server Error"
-    });
+    }, 500);
   }
 }

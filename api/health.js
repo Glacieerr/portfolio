@@ -1,20 +1,28 @@
-export default function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", process.env.ALLOWED_ORIGIN || "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-key");
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data, null, 2), {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, x-admin-key"
+    }
+  });
+}
 
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, x-admin-key"
+    }
+  });
+}
 
-  if (req.method !== "GET") {
-    return res.status(405).json({
-      ok: false,
-      error: "Method not allowed"
-    });
-  }
-
-  return res.status(200).json({
+export function GET() {
+  return json({
     ok: true,
     service: "Portfolio CMS API",
     github: {
