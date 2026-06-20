@@ -184,8 +184,17 @@
 
               <label>
                 封面路径 / Cover Path
-                <input id="img" type="text" placeholder="images/silnest-cover.webp" />
+                <input id="img" type="text" placeholder="images/works/silnest.webp" />
               </label>
+
+              <div class="media-upload-controls">
+                <input id="coverFileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+                <button class="btn ghost small" id="uploadCoverBtn" type="button">上传封面到 GitHub</button>
+              </div>
+
+              <p class="field-hint">
+                支持 JPG、PNG、WEBP、GIF。建议图片小于 4MB。上传成功后会自动填入封面路径。
+              </p>
 
               <label>
                 视频路径 / Video Path

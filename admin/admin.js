@@ -89,6 +89,35 @@ function saveAdminKey() {
   alert("Admin Key 已保存到当前浏览器。");
 }
 
+function getCurrentAdminKey() {
+  return $("#adminKeyInput").value.trim();
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      const base64 = result.includes(",") ? result.split(",")[1] : result;
+      resolve(base64);
+    };
+
+    reader.onerror = () => {
+      reject(new Error("读取图片失败。"));
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
+function getUploadSlug() {
+  const slug = createIdFromSlug(fields.slug.value);
+  const title = createIdFromSlug(fields.titleEn.value || fields.titleZh.value);
+
+  return slug || title || `work-cover-${Date.now()}`;
+}
+
 function getJsonText() {
   const sorted = [...works].sort((a, b) => {
     return Number(a.order || 999) - Number(b.order || 999);
@@ -417,6 +446,84 @@ async function copyJson() {
   }
 }
 
+async function uploadCoverImage() {
+  const adminKey = getCurrentAdminKey();
+
+  if (!adminKey) {
+    alert("请输入 Admin Key。");
+    return;
+  }
+
+  const fileInput = $("#coverFileInput");
+  const file = fileInput.files?.[0];
+
+  if (!file) {
+    alert("请先选择一张封面图片。");
+    return;
+  }
+
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+  if (!allowedTypes.includes(file.type)) {
+    alert("只支持 JPG、PNG、WEBP、GIF 图片。");
+    return;
+  }
+
+  const maxBytes = 4 * 1024 * 1024;
+
+  if (file.size > maxBytes) {
+    alert("图片太大，请控制在 4MB 以内。");
+    return;
+  }
+
+  const uploadBtn = $("#uploadCoverBtn");
+  const originalText = uploadBtn.textContent;
+
+  uploadBtn.disabled = true;
+  uploadBtn.textContent = "上传中...";
+
+  try {
+    const contentBase64 = await fileToBase64(file);
+    const slug = getUploadSlug();
+
+    const response = await fetch(`${CMS_API_BASE}/api/upload-media`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-key": adminKey
+      },
+      body: JSON.stringify({
+        fileName: file.name,
+        mimeType: file.type,
+        contentBase64,
+        slug
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "上传失败");
+    }
+
+    fields.img.value = result.path;
+    fields.mediaType.value = "image";
+    updateMediaPreview();
+
+    alert(
+      `封面上传成功！\n\nPath: ${result.path}\nCommit: ${
+        result.commitSha ? result.commitSha.slice(0, 7) : "unknown"
+      }\n\n请点击「保存到本地列表」，然后再点击「发布到 GitHub」保存作品数据。`
+    );
+  } catch (error) {
+    console.error(error);
+    alert(`封面上传失败：${error.message}`);
+  } finally {
+    uploadBtn.disabled = false;
+    uploadBtn.textContent = originalText;
+  }
+}
+
 async function publishToGitHub() {
   const adminKey = $("#adminKeyInput").value.trim();
 
@@ -550,6 +657,7 @@ function bindEvents() {
   $("#importJsonInput").addEventListener("change", importJsonFile);
   $("#saveAdminKeyBtn").addEventListener("click", saveAdminKey);
   $("#publishBtn").addEventListener("click", publishToGitHub);
+  $("#uploadCoverBtn").addEventListener("click", uploadCoverImage);
 
   listFilters.search.addEventListener("input", renderWorkList);
   listFilters.category.addEventListener("change", renderWorkList);
