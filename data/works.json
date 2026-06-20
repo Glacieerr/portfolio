@@ -33,7 +33,7 @@
   {
     "id": "cms-feature-test",
     "slug": "cms-feature-test",
-    "status": "draft",
+    "status": "published",
     "featured": true,
     "order": 1,
     "category": "software",
