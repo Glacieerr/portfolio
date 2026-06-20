@@ -20,6 +20,7 @@
 
       <nav class="nav">
         <button class="nav-btn active" data-panel="worksPanel" type="button">作品管理</button>
+        <button class="nav-btn" data-panel="mediaPanel" type="button">媒体库</button>
         <button class="nav-btn" data-panel="jsonPanel" type="button">JSON 预览</button>
         <button class="nav-btn" data-panel="helpPanel" type="button">使用说明</button>
       </nav>
@@ -184,8 +185,18 @@
 
               <label>
                 封面路径 / Cover Path
-                <input id="img" type="text" placeholder="images/silnest-cover.webp" />
+                <input id="img" type="text" placeholder="images/works/silnest.webp" />
               </label>
+
+              <div class="media-upload-controls">
+                <input id="coverFileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+                <button class="btn ghost small" id="uploadCoverBtn" type="button">上传封面到 GitHub</button>
+                <button class="btn ghost small" id="openMediaLibraryBtn" type="button">从媒体库选择</button>
+              </div>
+
+              <p class="field-hint">
+                支持 JPG、PNG、WEBP、GIF。建议图片小于 4MB。上传成功后会自动填入封面路径。
+              </p>
 
               <label>
                 视频路径 / Video Path
@@ -236,6 +247,25 @@
           </section>
         </div>
       </section>
+
+      <section class="panel" id="mediaPanel">
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h3>媒体库</h3>
+        <p class="card-subtitle">读取 GitHub 仓库中的 images/works/ 图片，可选择为当前作品封面。</p>
+      </div>
+
+      <button class="btn small primary" id="refreshMediaBtn" type="button">刷新媒体库</button>
+    </div>
+
+    <div class="media-library-status" id="mediaLibraryStatus">
+      输入 Admin Key 后，点击「刷新媒体库」读取已上传图片。
+    </div>
+
+    <div class="media-library-grid" id="mediaLibraryGrid"></div>
+  </section>
+</section>
 
       <section class="panel" id="jsonPanel">
         <section class="card">

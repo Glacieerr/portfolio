@@ -485,3 +485,119 @@ select:focus {
     width: 100%;
   }
 }
+
+.media-upload-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: -6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.media-upload-controls input[type="file"] {
+  flex: 1;
+  min-width: 220px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 10px 12px;
+  background: rgba(2, 6, 23, 0.28);
+}
+
+.field-hint {
+  margin-top: -2px;
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+#uploadCoverBtn:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.card-subtitle {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.media-library-status {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(2, 6, 23, 0.28);
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.media-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.media-item {
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(2, 6, 23, 0.34);
+}
+
+.media-item-preview {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(60, 208, 200, 0.16), transparent 30%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.9));
+}
+
+.media-item-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-item-body {
+  padding: 10px;
+}
+
+.media-item-name {
+  display: block;
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-item-path {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.media-item-actions .btn {
+  flex: 1;
+}
+
+@media (max-width: 720px) {
+  .media-library-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
