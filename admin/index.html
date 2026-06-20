@@ -56,9 +56,32 @@
 
           <button class="btn ghost" id="reloadBtn" type="button">重新读取</button>
           <button class="btn ghost" id="exportBtn" type="button">导出 works.json</button>
+          <button class="btn ghost" id="validateBtn" type="button">检查内容</button>
           <button class="btn primary" id="publishBtn" type="button">发布到 GitHub</button>
         </div>
       </header>
+
+      <div class="validation-banner" id="validationBanner" hidden>
+  <div class="validation-banner-head">
+    <div>
+      <strong id="validationTitle">内容检查</strong>
+      <p id="validationSummary">等待检查。</p>
+    </div>
+    <button class="btn small ghost" id="closeValidationBtn" type="button">关闭</button>
+  </div>
+
+  <div class="validation-columns">
+    <div>
+      <h4>错误 Errors</h4>
+      <ul id="validationErrors"></ul>
+    </div>
+
+    <div>
+      <h4>警告 Warnings</h4>
+      <ul id="validationWarnings"></ul>
+    </div>
+  </div>
+</div>
 
       <section class="panel active" id="worksPanel">
         <div class="layout">

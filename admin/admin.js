@@ -119,6 +119,299 @@ function getUploadSlug() {
   return slug || title || `work-cover-${Date.now()}`;
 }
 
+function normalizeText(value) {
+  return String(value ?? "").trim();
+}
+
+function getWorkDisplayName(work, index) {
+  const title =
+    normalizeText(work?.title?.zh) ||
+    normalizeText(work?.title?.en) ||
+    normalizeText(work?.slug) ||
+    normalizeText(work?.id) ||
+    `未命名作品 ${index + 1}`;
+
+  return `#${index + 1} ${title}`;
+}
+
+function hasRealValue(value) {
+  const text = normalizeText(value);
+
+  return text !== "" && text !== "#";
+}
+
+function looksLikeValidMediaPath(path) {
+  const value = normalizeText(path);
+
+  if (!value) return false;
+
+  return (
+    value.startsWith("images/") ||
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("data:")
+  );
+}
+
+function looksLikeValidLink(link) {
+  const value = normalizeText(link);
+
+  if (!value || value === "#") return true;
+
+  return (
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("mailto:")
+  );
+}
+
+function getCurrentFormDraftForValidation() {
+  const slug = createIdFromSlug(fields.slug.value);
+  const currentId = fields.workId.value || slug;
+
+  if (!slug && !fields.titleZh.value && !fields.titleEn.value) {
+    return null;
+  }
+
+  return {
+    id: currentId || slug,
+    slug,
+    category: fields.category.value,
+    mediaType: fields.mediaType.value,
+    order: Number(fields.order.value || 1),
+    img: normalizeText(fields.img.value),
+    video: normalizeText(fields.video.value),
+    link: normalizeText(fields.link.value),
+    tags: fields.tags.value
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean),
+    title: {
+      zh: normalizeText(fields.titleZh.value),
+      en: normalizeText(fields.titleEn.value)
+    },
+    desc: {
+      zh: normalizeText(fields.descZh.value),
+      en: normalizeText(fields.descEn.value)
+    },
+    linkText: {
+      zh: normalizeText(fields.linkTextZh.value),
+      en: normalizeText(fields.linkTextEn.value)
+    },
+    featured: fields.featured.checked,
+    status: fields.published.checked ? "published" : "draft"
+  };
+}
+
+function getWorksForValidation() {
+  const draft = getCurrentFormDraftForValidation();
+
+  if (!draft) {
+    return works;
+  }
+
+  const draftId = createIdFromSlug(draft.id || draft.slug);
+
+  if (!draftId) {
+    return [...works, draft];
+  }
+
+  const exists = works.some((work) => {
+    const workId = createIdFromSlug(work.id || work.slug);
+    return workId === draftId;
+  });
+
+  if (!exists) {
+    return [...works, draft];
+  }
+
+  return works.map((work) => {
+    const workId = createIdFromSlug(work.id || work.slug);
+    return workId === draftId ? draft : work;
+  });
+}
+
+function validateWorksData(items = works) {
+  const errors = [];
+  const warnings = [];
+  const seenIds = new Map();
+
+  if (!Array.isArray(items)) {
+    return {
+      errors: ["works 数据必须是数组。"],
+      warnings
+    };
+  }
+
+  items.forEach((work, index) => {
+    const name = getWorkDisplayName(work, index);
+    const id = normalizeText(work.id || work.slug);
+    const slug = normalizeText(work.slug || work.id);
+    const canonicalId = createIdFromSlug(id || slug);
+    const category = normalizeText(work.category);
+    const mediaType = normalizeText(work.mediaType || "image");
+    const status = normalizeText(work.status || "published");
+    const isPublished = status !== "draft";
+    const isFeatured = Boolean(work.featured);
+
+    const titleZh = normalizeText(work.title?.zh);
+    const titleEn = normalizeText(work.title?.en);
+    const descZh = normalizeText(work.desc?.zh);
+    const descEn = normalizeText(work.desc?.en);
+    const img = normalizeText(work.img);
+    const video = normalizeText(work.video);
+    const link = normalizeText(work.link);
+    const order = Number(work.order);
+
+    if (!canonicalId) {
+      errors.push(`${name}：缺少 Slug / ID。`);
+    } else if (seenIds.has(canonicalId)) {
+      errors.push(`${name}：Slug / ID 与 ${seenIds.get(canonicalId)} 重复：${canonicalId}`);
+    } else {
+      seenIds.set(canonicalId, name);
+    }
+
+    const allowedCategories = ["software", "tools", "uiux", "photo", "art", "motion"];
+
+    if (!allowedCategories.includes(category)) {
+      errors.push(`${name}：分类无效：${category || "空"}`);
+    }
+
+    if (!["image", "video"].includes(mediaType)) {
+      errors.push(`${name}：媒体类型必须是 image 或 video。`);
+    }
+
+    if (isPublished) {
+      if (!titleZh) {
+        errors.push(`${name}：Published 作品缺少中文标题。`);
+      }
+
+      if (!titleEn) {
+        errors.push(`${name}：Published 作品缺少英文标题。`);
+      }
+
+      if (mediaType === "image" && !hasRealValue(img)) {
+        errors.push(`${name}：Published 图片作品缺少封面路径。`);
+      }
+
+      if (mediaType === "video" && !hasRealValue(video)) {
+        errors.push(`${name}：Published 视频作品缺少视频路径。`);
+      }
+    }
+
+    if (isFeatured && !isPublished) {
+      warnings.push(`${name}：已设为 Featured，但未 Published。前台不会展示这个核心项目。`);
+    }
+
+    if (isPublished && !descZh) {
+      warnings.push(`${name}：Published 作品缺少中文描述。`);
+    }
+
+    if (isPublished && !descEn) {
+      warnings.push(`${name}：Published 作品缺少英文描述。`);
+    }
+
+    if (hasRealValue(img) && !looksLikeValidMediaPath(img)) {
+      warnings.push(`${name}：封面路径看起来不规范：${img}`);
+    }
+
+    if (
+      mediaType === "video" &&
+      hasRealValue(video) &&
+      !looksLikeValidMediaPath(video) &&
+      !video.startsWith("videos/")
+    ) {
+      warnings.push(`${name}：视频路径看起来不规范：${video}`);
+    }
+
+    if (!Number.isFinite(order)) {
+      warnings.push(`${name}：Order 不是有效数字。`);
+    }
+
+    if (!looksLikeValidLink(link)) {
+      warnings.push(`${name}：链接格式可能不正确：${link}`);
+    }
+
+    if (isFeatured && isPublished && !hasRealValue(img)) {
+      warnings.push(`${name}：Featured 作品建议设置封面图，否则核心项目区视觉表现会弱。`);
+    }
+  });
+
+  return {
+    errors,
+    warnings
+  };
+}
+
+function renderListItems(list, items, emptyText) {
+  if (!list) return;
+
+  if (!items.length) {
+    list.innerHTML = `<li>${escapeHTML(emptyText)}</li>`;
+    return;
+  }
+
+  list.innerHTML = items.map((item) => `<li>${escapeHTML(item)}</li>`).join("");
+}
+
+function showValidationReport(report, options = {}) {
+  const banner = $("#validationBanner");
+  const title = $("#validationTitle");
+  const summary = $("#validationSummary");
+  const errorList = $("#validationErrors");
+  const warningList = $("#validationWarnings");
+
+  if (!banner || !title || !summary || !errorList || !warningList) return;
+
+  const errorCount = report.errors.length;
+  const warningCount = report.warnings.length;
+
+  banner.hidden = false;
+  banner.classList.remove("is-valid", "is-warning", "is-error");
+
+  if (errorCount > 0) {
+    banner.classList.add("is-error");
+    title.textContent = "内容检查未通过";
+    summary.textContent = `发现 ${errorCount} 个错误、${warningCount} 个警告。错误必须修复后才能发布。`;
+  } else if (warningCount > 0) {
+    banner.classList.add("is-warning");
+    title.textContent = "内容检查有警告";
+    summary.textContent = `没有阻塞错误，但有 ${warningCount} 个警告。你可以检查后再决定是否发布。`;
+  } else {
+    banner.classList.add("is-valid");
+    title.textContent = "内容检查通过";
+    summary.textContent = "没有发现错误或警告，可以安全发布。";
+  }
+
+  renderListItems(errorList, report.errors, "没有错误。");
+  renderListItems(warningList, report.warnings, "没有警告。");
+
+  if (options.scrollIntoView) {
+    banner.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+}
+
+function runContentValidation() {
+  const report = validateWorksData(getWorksForValidation());
+
+  showValidationReport(report, {
+    scrollIntoView: true
+  });
+
+  return report;
+}
+
+function closeValidationBanner() {
+  const banner = $("#validationBanner");
+
+  if (banner) {
+    banner.hidden = true;
+  }
+}
+
 function getJsonText() {
   const sorted = [...works].sort((a, b) => {
     return Number(a.order || 999) - Number(b.order || 999);
@@ -651,6 +944,25 @@ async function publishToGitHub() {
     return;
   }
 
+  const validationReport = validateWorksData(getWorksForValidation());
+
+showValidationReport(validationReport, {
+  scrollIntoView: true
+});
+
+if (validationReport.errors.length > 0) {
+  alert("发布已阻止：当前内容存在错误。请先修复错误后再发布。");
+  return;
+}
+
+if (validationReport.warnings.length > 0) {
+  const continuePublish = confirm(
+    `当前内容有 ${validationReport.warnings.length} 个警告。\n\n这些警告不会阻止发布，但建议你先检查。\n\n是否仍然继续发布？`
+  );
+
+  if (!continuePublish) return;
+}
+
   const confirmed = confirm(
     "确定发布到 GitHub 吗？\n\n当前 CMS 中的 works 列表会写入 GitHub 仓库的 data/works.json。"
   );
@@ -778,6 +1090,8 @@ function bindEvents() {
   $("#uploadCoverBtn").addEventListener("click", uploadCoverImage);
   $("#openMediaLibraryBtn").addEventListener("click", openMediaLibrary);
   $("#refreshMediaBtn").addEventListener("click", loadMediaLibrary);
+  $("#validateBtn").addEventListener("click", runContentValidation);
+  $("#closeValidationBtn").addEventListener("click", closeValidationBanner);
 
   listFilters.search.addEventListener("input", renderWorkList);
   listFilters.category.addEventListener("change", renderWorkList);
