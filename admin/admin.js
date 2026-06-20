@@ -1,6 +1,8 @@
 let works = [];
 let selectedId = null;
 
+const CMS_API_BASE = "https://portfolio-flame-seven-33.vercel.app";
+
 const $ = (selector) => document.querySelector(selector);
 function escapeHTML(value) {
   return String(value ?? "")
@@ -64,6 +66,27 @@ function createIdFromSlug(slug) {
     .toLowerCase()
     .replace(/[^a-z0-9-_]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function loadSavedAdminKey() {
+  const savedKey = localStorage.getItem("portfolioCmsAdminKey") || "";
+  const input = $("#adminKeyInput");
+
+  if (input) {
+    input.value = savedKey;
+  }
+}
+
+function saveAdminKey() {
+  const key = $("#adminKeyInput").value.trim();
+
+  if (!key) {
+    alert("请输入 Admin Key。");
+    return;
+  }
+
+  localStorage.setItem("portfolioCmsAdminKey", key);
+  alert("Admin Key 已保存到当前浏览器。");
 }
 
 function getJsonText() {
@@ -394,6 +417,64 @@ async function copyJson() {
   }
 }
 
+async function publishToGitHub() {
+  const adminKey = $("#adminKeyInput").value.trim();
+
+  if (!adminKey) {
+    alert("请输入 Admin Key。");
+    return;
+  }
+
+  if (!Array.isArray(works)) {
+    alert("当前 works 数据异常，无法发布。");
+    return;
+  }
+
+  const confirmed = confirm(
+    "确定发布到 GitHub 吗？\n\n当前 CMS 中的 works 列表会写入 GitHub 仓库的 data/works.json。"
+  );
+
+  if (!confirmed) return;
+
+  const publishBtn = $("#publishBtn");
+  const originalText = publishBtn.textContent;
+
+  publishBtn.disabled = true;
+  publishBtn.textContent = "发布中...";
+
+  try {
+    const response = await fetch(`${CMS_API_BASE}/api/publish`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-key": adminKey
+      },
+      body: JSON.stringify({
+        works,
+        message: `cms: update works ${new Date().toISOString()}`
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "发布失败");
+    }
+
+    alert(
+      `发布成功！\n\nBranch: ${result.branch}\nFile: ${result.filePath}\nCommit: ${
+        result.commitSha ? result.commitSha.slice(0, 7) : "unknown"
+      }`
+    );
+  } catch (error) {
+    console.error(error);
+    alert(`发布失败：${error.message}`);
+  } finally {
+    publishBtn.disabled = false;
+    publishBtn.textContent = originalText;
+  }
+}
+
 async function importJsonFile(event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -467,6 +548,8 @@ function bindEvents() {
   $("#downloadJsonBtn").addEventListener("click", downloadJson);
   $("#copyJsonBtn").addEventListener("click", copyJson);
   $("#importJsonInput").addEventListener("change", importJsonFile);
+  $("#saveAdminKeyBtn").addEventListener("click", saveAdminKey);
+  $("#publishBtn").addEventListener("click", publishToGitHub);
 
   listFilters.search.addEventListener("input", renderWorkList);
   listFilters.category.addEventListener("change", renderWorkList);
@@ -486,4 +569,5 @@ function bindEvents() {
 
 bindPanels();
 bindEvents();
+loadSavedAdminKey();
 loadWorks();

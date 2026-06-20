@@ -463,3 +463,25 @@ select:focus {
     grid-template-columns: 1fr;
   }
 }
+
+.admin-key-input {
+  width: 170px;
+  min-height: 42px;
+  border-radius: 999px;
+  padding: 9px 14px;
+}
+
+#publishBtn:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .topbar-actions {
+    flex-wrap: wrap;
+  }
+
+  .admin-key-input {
+    width: 100%;
+  }
+}

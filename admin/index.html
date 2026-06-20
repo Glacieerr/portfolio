@@ -36,7 +36,27 @@
           <p>新增、编辑、删除作品，并导出新的 works.json。</p>
         </div>
 
-        <div class="topbar-actions">
+<div class="topbar-actions">
+  <input
+    class="admin-key-input"
+    id="adminKeyInput"
+    type="password"
+    placeholder="Admin Key"
+    autocomplete="current-password"
+  />
+
+  <button class="btn ghost" id="saveAdminKeyBtn" type="button">保存密钥</button>
+
+  <label class="btn ghost file-btn">
+    导入 JSON
+    <input id="importJsonInput" type="file" accept="application/json" hidden />
+  </label>
+
+  <button class="btn ghost" id="reloadBtn">重新读取</button>
+  <button class="btn ghost" id="exportBtn">导出 works.json</button>
+  <button class="btn primary" id="publishBtn" type="button">发布到 GitHub</button>
+</div>
+
   <label class="btn ghost file-btn">
     导入 JSON
     <input id="importJsonInput" type="file" accept="application/json" hidden />
