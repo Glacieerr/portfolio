@@ -3,7 +3,7 @@
     "id": "testwork",
     "slug": "testwork",
     "status": "published",
-    "featured": false,
+    "featured": true,
     "order": 1,
     "category": "software",
     "mediaType": "image",
@@ -28,6 +28,6 @@
       "JSON"
     ],
     "createdAt": "2026-06-18",
-    "updatedAt": "2026-06-18"
+    "updatedAt": "2026-06-20"
   }
 ]
