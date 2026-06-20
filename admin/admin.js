@@ -1,5 +1,6 @@
 let works = [];
 let selectedId = null;
+let mediaLibraryItems = [];
 
 const CMS_API_BASE = "https://portfolio-flame-seven-33.vercel.app";
 
@@ -524,6 +525,119 @@ async function uploadCoverImage() {
   }
 }
 
+function formatFileSize(bytes) {
+  const size = Number(bytes || 0);
+
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function renderMediaLibrary(items = mediaLibraryItems) {
+  const grid = $("#mediaLibraryGrid");
+  const status = $("#mediaLibraryStatus");
+
+  if (!grid || !status) return;
+
+  if (!items.length) {
+    status.textContent = "媒体库为空。上传封面后，图片会出现在这里。";
+    grid.innerHTML = "";
+    return;
+  }
+
+  status.textContent = `已读取 ${items.length} 张图片。点击「设为封面」即可填入当前作品。`;
+
+  grid.innerHTML = items.map((item) => `
+    <article class="media-item">
+      <div class="media-item-preview">
+        <img src="${escapeHTML(item.downloadUrl || "")}" alt="${escapeHTML(item.name)}" loading="lazy" />
+      </div>
+
+      <div class="media-item-body">
+        <span class="media-item-name">${escapeHTML(item.name)}</span>
+        <span class="media-item-path">${escapeHTML(item.path)} · ${escapeHTML(formatFileSize(item.size))}</span>
+
+        <div class="media-item-actions">
+          <button class="btn small ghost" type="button" data-media-path="${escapeHTML(item.path)}">
+            设为封面
+          </button>
+        </div>
+      </div>
+    </article>
+  `).join("");
+
+  grid.querySelectorAll("[data-media-path]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const path = button.dataset.mediaPath;
+
+      fields.img.value = path;
+      fields.mediaType.value = "image";
+      updateMediaPreview();
+      activatePanel("worksPanel");
+
+      alert(`已设置当前封面：\n${path}\n\n记得点击「保存到本地列表」，然后再「发布到 GitHub」。`);
+    });
+  });
+}
+
+async function loadMediaLibrary() {
+  const adminKey = getCurrentAdminKey();
+
+  if (!adminKey) {
+    alert("请输入 Admin Key。");
+    return;
+  }
+
+  const refreshBtn = $("#refreshMediaBtn");
+  const status = $("#mediaLibraryStatus");
+  const originalText = refreshBtn.textContent;
+
+  refreshBtn.disabled = true;
+  refreshBtn.textContent = "读取中...";
+
+  if (status) {
+    status.textContent = "正在从 GitHub 读取 images/works/ ...";
+  }
+
+  try {
+    const response = await fetch(`${CMS_API_BASE}/api/list-media`, {
+      method: "GET",
+      headers: {
+        "x-admin-key": adminKey
+      }
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "读取媒体库失败");
+    }
+
+    mediaLibraryItems = Array.isArray(result.items) ? result.items : [];
+    renderMediaLibrary(mediaLibraryItems);
+  } catch (error) {
+    console.error(error);
+
+    if (status) {
+      status.textContent = `媒体库读取失败：${error.message}`;
+    }
+
+    alert(`媒体库读取失败：${error.message}`);
+  } finally {
+    refreshBtn.disabled = false;
+    refreshBtn.textContent = originalText;
+  }
+}
+
+function openMediaLibrary() {
+  activatePanel("mediaPanel");
+
+  if (!mediaLibraryItems.length) {
+    loadMediaLibrary();
+  }
+}
+
 async function publishToGitHub() {
   const adminKey = $("#adminKeyInput").value.trim();
 
@@ -631,16 +745,20 @@ async function importJsonFile(event) {
   }
 }
 
+function activatePanel(panelId) {
+  document.querySelectorAll(".panel").forEach((panel) => {
+    panel.classList.toggle("active", panel.id === panelId);
+  });
+
+  document.querySelectorAll(".nav-btn").forEach((button) => {
+    button.classList.toggle("active", button.dataset.panel === panelId);
+  });
+}
+
 function bindPanels() {
   document.querySelectorAll(".nav-btn").forEach((button) => {
     button.addEventListener("click", () => {
-      document.querySelectorAll(".nav-btn").forEach((item) => item.classList.remove("active"));
-      document.querySelectorAll(".panel").forEach((panel) => panel.classList.remove("active"));
-
-      button.classList.add("active");
-      $(`#${button.dataset.panel}`).classList.add("active");
-
-      updateJsonPreview();
+      activatePanel(button.dataset.panel);
     });
   });
 }
@@ -658,6 +776,8 @@ function bindEvents() {
   $("#saveAdminKeyBtn").addEventListener("click", saveAdminKey);
   $("#publishBtn").addEventListener("click", publishToGitHub);
   $("#uploadCoverBtn").addEventListener("click", uploadCoverImage);
+  $("#openMediaLibraryBtn").addEventListener("click", openMediaLibrary);
+  $("#refreshMediaBtn").addEventListener("click", loadMediaLibrary);
 
   listFilters.search.addEventListener("input", renderWorkList);
   listFilters.category.addEventListener("change", renderWorkList);
