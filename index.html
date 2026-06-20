@@ -1113,6 +1113,24 @@
       return value ?? "";
     }
 
+function getPublishedWorks() {
+  return [...works]
+    .filter((work) => work.status !== "draft")
+    .sort((a, b) => Number(a.order || 999) - Number(b.order || 999));
+}
+
+function getFeaturedWorks() {
+  return getPublishedWorks().filter((work) => work.featured);
+}
+
+function getWorkTitle(work) {
+  return localized(work.title) || work.slug || work.id || "Untitled Work";
+}
+
+function getWorkDesc(work) {
+  return localized(work.desc) || "";
+}
+
     function escapeHTML(value) {
       return String(value)
         .replaceAll("&", "&amp;")
@@ -1145,21 +1163,66 @@
     }
 
     function renderFeatured() {
-      const grid = document.getElementById("featuredGrid");
-      grid.innerHTML = featuredProjects.map(project => `
-        <article class="feature-card ${escapeHTML(project.size)} tilt-card reveal is-visible">
-          <div class="feature-top">
-            <span>${escapeHTML(project.index)} / ${escapeHTML(localized(project.type))}</span>
-            <span class="status-pill">${escapeHTML(localized(project.status))}</span>
-          </div>
-          <h3>${escapeHTML(localized(project.title))}</h3>
-          <p>${escapeHTML(localized(project.desc))}</p>
-          <div class="tech-list">${project.tags.map(tag => `<span>${escapeHTML(tag)}</span>`).join("")}</div>
-          <div class="feature-bg-word">${escapeHTML(project.bg)}</div>
-        </article>
-      `).join("");
-      bindTiltCards(grid);
-    }
+  const grid = document.getElementById("featuredGrid");
+  const featured = getFeaturedWorks().slice(0, 5);
+
+  if (!featured.length) {
+    grid.innerHTML = `
+      <article class="feature-card large reveal is-visible">
+        <div class="feature-top">
+          <span>Featured / Empty</span>
+          <span class="status-pill">Waiting</span>
+        </div>
+        <h3>${currentLang === "zh" ? "暂无核心项目" : "No Featured Projects Yet"}</h3>
+        <p>
+          ${
+            currentLang === "zh"
+              ? "在 CMS 后台勾选某个作品的 Featured 核心项目，并发布到 GitHub 后，它会出现在这里。"
+              : "Mark a work as Featured in the CMS admin and publish it to GitHub. It will appear here automatically."
+          }
+        </p>
+        <div class="tech-list">
+          <span>CMS</span>
+          <span>Featured</span>
+          <span>works.json</span>
+        </div>
+        <div class="feature-bg-word">CMS</div>
+      </article>
+    `;
+
+    bindTiltCards(grid);
+    return;
+  }
+
+  grid.innerHTML = featured.map((work, index) => {
+    const size = index === 0 ? "large" : index === 1 ? "medium" : "small";
+    const category = getCategory(work.category);
+    const title = getWorkTitle(work);
+    const desc = getWorkDesc(work);
+    const tags = Array.isArray(work.tags) ? work.tags : [];
+    const label = localized(category.label);
+    const bgWord = String(work.slug || work.id || "Work")
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .slice(0, 12) || "Work";
+
+    return `
+      <article class="feature-card ${escapeHTML(size)} tilt-card reveal is-visible">
+        <div class="feature-top">
+          <span>${String(index + 1).padStart(2, "0")} / ${escapeHTML(label)}</span>
+          <span class="status-pill">Featured</span>
+        </div>
+        <h3>${escapeHTML(title)}</h3>
+        <p>${escapeHTML(desc)}</p>
+        <div class="tech-list">
+          ${tags.map((tag) => `<span>${escapeHTML(tag)}</span>`).join("")}
+        </div>
+        <div class="feature-bg-word">${escapeHTML(bgWord)}</div>
+      </article>
+    `;
+  }).join("");
+
+  bindTiltCards(grid);
+}
 
     function renderCategoryOverview() {
       const overview = document.getElementById("categoryOverview");
@@ -1206,7 +1269,10 @@
 
     function renderGallery(category = "all") {
       const container = document.getElementById("galleryContainer");
-      const filtered = category === "all" ? works : works.filter(work => work.category === category);
+      const visibleWorks = getPublishedWorks();
+      const filtered = category === "all"
+      ? visibleWorks
+      : visibleWorks.filter((work) => work.category === category);
 
       if (!filtered.length) {
         container.innerHTML = `<div class="empty-state">${escapeHTML(t("misc.empty"))}</div>`;
