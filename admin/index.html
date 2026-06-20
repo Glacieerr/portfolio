@@ -18,111 +18,119 @@
       </div>
 
       <nav class="nav">
-        <button class="nav-btn active" data-panel="worksPanel" type="button">作品管理</button>
-        <button class="nav-btn" data-panel="jsonPanel" type="button">JSON 预览</button>
-        <button class="nav-btn" data-panel="helpPanel" type="button">使用说明</button>
+        <button class="nav-btn active" data-panel="worksPanel">作品管理</button>
+        <button class="nav-btn" data-panel="jsonPanel">JSON 预览</button>
+        <button class="nav-btn" data-panel="helpPanel">使用说明</button>
       </nav>
 
       <div class="sidebar-footer">
-        <p>Phase 3 · GitHub Publish CMS</p>
-        <p>当前版本：本地编辑 + 一键发布到 GitHub</p>
+        <p>Phase 2 · Local CMS</p>
+        <p>当前版本：手动导出 works.json</p>
       </div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <div class="topbar-copy">
+        <div>
           <h2>作品管理</h2>
-          <p>新增、编辑、删除作品，并同步发布到 GitHub 仓库的 data/works.json。</p>
+          <p>新增、编辑、删除作品，并导出新的 works.json。</p>
         </div>
 
-        <div class="topbar-actions">
-          <input
-            class="admin-key-input"
-            id="adminKeyInput"
-            type="password"
-            placeholder="Admin Key"
-            autocomplete="current-password"
-          />
+<div class="topbar-actions">
+  <input
+    class="admin-key-input"
+    id="adminKeyInput"
+    type="password"
+    placeholder="Admin Key"
+    autocomplete="current-password"
+  />
 
-          <button class="btn ghost" id="saveAdminKeyBtn" type="button">保存密钥</button>
+  <button class="btn ghost" id="saveAdminKeyBtn" type="button">保存密钥</button>
 
-          <label class="btn ghost file-btn">
-            导入 JSON
-            <input id="importJsonInput" type="file" accept="application/json" hidden />
-          </label>
+  <label class="btn ghost file-btn">
+    导入 JSON
+    <input id="importJsonInput" type="file" accept="application/json" hidden />
+  </label>
 
-          <button class="btn ghost" id="reloadBtn" type="button">重新读取</button>
-          <button class="btn ghost" id="exportBtn" type="button">导出 works.json</button>
-          <button class="btn primary" id="publishBtn" type="button">发布到 GitHub</button>
-        </div>
+  <button class="btn ghost" id="reloadBtn">重新读取</button>
+  <button class="btn ghost" id="exportBtn">导出 works.json</button>
+  <button class="btn primary" id="publishBtn" type="button">发布到 GitHub</button>
+</div>
+
+  <label class="btn ghost file-btn">
+    导入 JSON
+    <input id="importJsonInput" type="file" accept="application/json" hidden />
+  </label>
+  <button class="btn ghost" id="reloadBtn">重新读取</button>
+  <button class="btn primary" id="exportBtn">导出 works.json</button>
+</div>
       </header>
 
       <section class="panel active" id="worksPanel">
         <div class="layout">
           <section class="card list-card">
             <div class="card-head">
-              <h3>作品列表</h3>
-              <button class="btn small" id="newWorkBtn" type="button">+ 新增作品</button>
-            </div>
+  <h3>作品列表</h3>
+  <button class="btn small" id="newWorkBtn">+ 新增作品</button>
+</div>
 
-            <div class="cms-stats">
-              <div>
-                <b id="statTotal">0</b>
-                <span>全部</span>
-              </div>
-              <div>
-                <b id="statPublished">0</b>
-                <span>Published</span>
-              </div>
-              <div>
-                <b id="statDraft">0</b>
-                <span>Draft</span>
-              </div>
-              <div>
-                <b id="statFeatured">0</b>
-                <span>Featured</span>
-              </div>
-            </div>
+<div class="cms-stats">
+  <div>
+    <b id="statTotal">0</b>
+    <span>全部</span>
+  </div>
+  <div>
+    <b id="statPublished">0</b>
+    <span>Published</span>
+  </div>
+  <div>
+    <b id="statDraft">0</b>
+    <span>Draft</span>
+  </div>
+  <div>
+    <b id="statFeatured">0</b>
+    <span>Featured</span>
+  </div>
+</div>
 
-            <div class="list-tools">
-              <input id="searchInput" type="search" placeholder="搜索标题、Slug、标签..." />
+<div class="list-tools">
+  <input id="searchInput" type="search" placeholder="搜索标题、Slug、标签..." />
 
-              <select id="categoryFilter">
-                <option value="all">全部分类</option>
-                <option value="software">程序项目</option>
-                <option value="tools">工具实验</option>
-                <option value="uiux">UI/UX</option>
-                <option value="photo">摄影</option>
-                <option value="art">绘画</option>
-                <option value="motion">动态影像</option>
-              </select>
+  <select id="categoryFilter">
+    <option value="all">全部分类</option>
+    <option value="software">程序项目</option>
+    <option value="tools">工具实验</option>
+    <option value="uiux">UI/UX</option>
+    <option value="photo">摄影</option>
+    <option value="art">绘画</option>
+    <option value="motion">动态影像</option>
+  </select>
 
-              <select id="statusFilter">
-                <option value="all">全部状态</option>
-                <option value="published">Published</option>
-                <option value="draft">Draft</option>
-                <option value="featured">Featured</option>
-              </select>
-            </div>
+  <select id="statusFilter">
+    <option value="all">全部状态</option>
+    <option value="published">Published</option>
+    <option value="draft">Draft</option>
+    <option value="featured">Featured</option>
+  </select>
+</div>
 
-            <div class="work-list" id="workList"></div>
+<div class="work-list" id="workList"></div>
           </section>
 
           <section class="card editor-card">
             <div class="card-head">
-              <h3 id="editorTitle">新增作品</h3>
-              <button class="btn danger small" id="deleteBtn" type="button">删除</button>
-            </div>
+  <h3 id="editorTitle">新增作品</h3>
+  <button class="btn danger small" id="deleteBtn">删除</button>
+</div>
 
-            <div class="media-preview" id="mediaPreview">
-              <div class="preview-empty">
-                <span>Media Preview</span>
-                <p>输入封面路径后会在这里显示预览。</p>
-              </div>
-            </div>
+<div class="media-preview" id="mediaPreview">
+  <div class="preview-empty">
+    <span>Media Preview</span>
+    <p>输入封面路径后会在这里显示预览。</p>
+  </div>
+</div>
 
-            <form id="workForm" class="form">
+<form id="workForm" class="form">
               <input type="hidden" id="workId" />
 
               <div class="grid two">
@@ -240,9 +248,9 @@
         <section class="card">
           <div class="card-head">
             <h3>JSON 预览</h3>
-            <div class="json-actions">
-              <button class="btn small" id="copyJsonBtn" type="button">复制 JSON</button>
-              <button class="btn small primary" id="downloadJsonBtn" type="button">下载 works.json</button>
+            <div>
+              <button class="btn small" id="copyJsonBtn">复制 JSON</button>
+              <button class="btn small primary" id="downloadJsonBtn">下载 works.json</button>
             </div>
           </div>
 
@@ -256,14 +264,15 @@
           <ol>
             <li>点击「新增作品」，填写表单。</li>
             <li>点击「保存到本地列表」。</li>
-            <li>输入 Vercel 环境变量中设置的 <code>ADMIN_KEY</code>，点击「保存密钥」。</li>
-            <li>点击「发布到 GitHub」，系统会自动更新 <code>cms-v1</code> 分支的 <code>data/works.json</code>。</li>
-            <li>Vercel 会自动部署 <code>cms-v1</code>，你可以在 Vercel 预览站点检查效果。</li>
-            <li>确认无误后，再通过 Pull Request 把 <code>cms-v1</code> 合并到 <code>main</code>。</li>
+            <li>点击「JSON 预览」检查数据。</li>
+            <li>点击「下载 works.json」。</li>
+            <li>把下载的文件替换项目里的 <code>data/works.json</code>。</li>
+            <li>执行 <code>git add .</code>、<code>git commit</code>、<code>git push</code>。</li>
           </ol>
 
           <p>
-            备用方式：你仍然可以使用「导出 works.json」手动下载 JSON 文件。
+            下一阶段会加入 GitHub API，让「保存」按钮自动提交到 GitHub 仓库，
+            不再需要手动下载和替换 JSON。
           </p>
         </section>
       </section>
