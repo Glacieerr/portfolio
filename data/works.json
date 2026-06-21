@@ -45,8 +45,8 @@
       "en": "CMS Featured Test"
     },
     "desc": {
-      "zh": "这是一个用于测试 Featured 与 Published 控制逻辑的 CMS 测试作品。",
-      "en": "This is a CMS test work for verifying Featured and Published visibility control."
+      "zh": "这是一个用于测试 Featured 与 Published 控制逻辑的 CMS 测试作品1。",
+      "en": "This is a CMS test work for verifying Featured and Published visibility control1."
     },
     "link": "#",
     "linkText": {
@@ -57,6 +57,6 @@
       "images/test-cover.webp"
     ],
     "createdAt": "2026-06-20",
-    "updatedAt": "2026-06-20"
+    "updatedAt": "2026-06-21"
   }
 ]
