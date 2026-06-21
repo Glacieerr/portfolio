@@ -35,6 +35,53 @@ function githubHeaders(token) {
   };
 }
 
+function createBackupTimestamp() {
+  return new Date()
+    .toISOString()
+    .replaceAll(":", "-")
+    .replaceAll(".", "-");
+}
+
+async function putGitHubFile({
+  owner,
+  repo,
+  branch,
+  filePath,
+  token,
+  message,
+  contentBase64,
+  sha
+}) {
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
+
+  const response = await fetch(apiUrl, {
+    method: "PUT",
+    headers: githubHeaders(token),
+    body: JSON.stringify({
+      message,
+      content: contentBase64,
+      branch,
+      ...(sha ? { sha } : {})
+    })
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      status: response.status,
+      result
+    };
+  }
+
+  return {
+    ok: true,
+    status: response.status,
+    result
+  };
+}
+
 export function OPTIONS() {
   return new Response(null, {
     status: 204,
@@ -59,6 +106,7 @@ export async function POST(request) {
     const repo = requireEnv("GITHUB_REPO");
     const branch = process.env.GITHUB_BRANCH || "cms-v1";
     const filePath = process.env.GITHUB_FILE_PATH || "data/works.json";
+    const backupFolder = process.env.BACKUP_FOLDER || "data/backups";
 
     const body = await request.json();
     const works = body.works;
@@ -89,39 +137,63 @@ export async function POST(request) {
     }
 
     const currentFile = await currentResponse.json();
-    const sha = currentFile.sha;
+    const currentSha = currentFile.sha;
+    const currentContentBase64 = String(currentFile.content || "").replace(/\n/g, "");
+
+    const backupTimestamp = createBackupTimestamp();
+    const backupPath = `${backupFolder}/works-${backupTimestamp}.json`;
+
+    const backupResult = await putGitHubFile({
+      owner,
+      repo,
+      branch,
+      filePath: backupPath,
+      token,
+      message: `cms: backup works ${backupTimestamp}`,
+      contentBase64: currentContentBase64
+    });
+
+    if (!backupResult.ok) {
+      return json({
+        ok: false,
+        error: "Failed to create works.json backup before publishing.",
+        detail: backupResult.result
+      }, backupResult.status);
+    }
 
     const contentText = `${JSON.stringify(works, null, 2)}\n`;
     const contentBase64 = Buffer.from(contentText, "utf8").toString("base64");
 
-    const updateResponse = await fetch(apiUrl, {
-      method: "PUT",
-      headers: githubHeaders(token),
-      body: JSON.stringify({
-        message,
-        content: contentBase64,
-        sha,
-        branch
-      })
+    const updateResult = await putGitHubFile({
+      owner,
+      repo,
+      branch,
+      filePath,
+      token,
+      message,
+      contentBase64,
+      sha: currentSha
     });
 
-    const updateResult = await updateResponse.json();
-
-    if (!updateResponse.ok) {
+    if (!updateResult.ok) {
       return json({
         ok: false,
-        error: "Failed to update works.json on GitHub",
-        detail: updateResult
-      }, updateResponse.status);
+        error: "Backup was created, but failed to update works.json on GitHub.",
+        backupPath,
+        detail: updateResult.result
+      }, updateResult.status);
     }
 
     return json({
       ok: true,
-      message: "Published to GitHub",
+      message: "Published to GitHub with backup",
       branch,
       filePath,
-      commitSha: updateResult.commit?.sha || null,
-      commitUrl: updateResult.commit?.html_url || null
+      backupPath,
+      backupCommitSha: backupResult.result.commit?.sha || null,
+      backupCommitUrl: backupResult.result.commit?.html_url || null,
+      commitSha: updateResult.result.commit?.sha || null,
+      commitUrl: updateResult.result.commit?.html_url || null
     });
   } catch (error) {
     return json({

@@ -1,6 +1,7 @@
 let works = [];
 let selectedId = null;
 let mediaLibraryItems = [];
+let backupItems = [];
 
 const CMS_API_BASE = "https://portfolio-flame-seven-33.vercel.app";
 
@@ -931,6 +932,96 @@ function openMediaLibrary() {
   }
 }
 
+function formatBackupName(name) {
+  return String(name || "")
+    .replace(/^works-/, "")
+    .replace(/\.json$/i, "")
+    .replace("T", " ")
+    .replace("Z", " UTC");
+}
+
+function renderBackupList(items = backupItems) {
+  const list = $("#backupList");
+  const status = $("#backupLibraryStatus");
+
+  if (!list || !status) return;
+
+  if (!items.length) {
+    status.textContent = "暂时没有备份。下一次发布 works.json 前，系统会自动创建备份。";
+    list.innerHTML = "";
+    return;
+  }
+
+  status.textContent = `已读取 ${items.length} 个备份。最新备份显示在最上方。`;
+
+  list.innerHTML = items.map((item) => `
+    <article class="backup-item">
+      <div>
+        <strong>${escapeHTML(formatBackupName(item.name))}</strong>
+        <span>${escapeHTML(item.path)} · ${escapeHTML(formatFileSize(item.size))}</span>
+      </div>
+
+      <div class="backup-actions">
+        <a class="btn small ghost" href="${escapeHTML(item.downloadUrl || "#")}" target="_blank" rel="noopener noreferrer">
+          查看 JSON
+        </a>
+        <a class="btn small ghost" href="${escapeHTML(item.htmlUrl || "#")}" target="_blank" rel="noopener noreferrer">
+          GitHub
+        </a>
+      </div>
+    </article>
+  `).join("");
+}
+
+async function loadBackups() {
+  const adminKey = getCurrentAdminKey();
+
+  if (!adminKey) {
+    alert("请输入 Admin Key。");
+    return;
+  }
+
+  const refreshBtn = $("#refreshBackupsBtn");
+  const status = $("#backupLibraryStatus");
+  const originalText = refreshBtn.textContent;
+
+  refreshBtn.disabled = true;
+  refreshBtn.textContent = "读取中...";
+
+  if (status) {
+    status.textContent = "正在从 GitHub 读取 data/backups/ ...";
+  }
+
+  try {
+    const response = await fetch(`${CMS_API_BASE}/api/list-backups`, {
+      method: "GET",
+      headers: {
+        "x-admin-key": adminKey
+      }
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "读取备份失败");
+    }
+
+    backupItems = Array.isArray(result.items) ? result.items : [];
+    renderBackupList(backupItems);
+  } catch (error) {
+    console.error(error);
+
+    if (status) {
+      status.textContent = `备份读取失败：${error.message}`;
+    }
+
+    alert(`备份读取失败：${error.message}`);
+  } finally {
+    refreshBtn.disabled = false;
+    refreshBtn.textContent = originalText;
+  }
+}
+
 async function publishToGitHub() {
   const adminKey = $("#adminKeyInput").value.trim();
 
@@ -995,7 +1086,9 @@ if (validationReport.warnings.length > 0) {
     }
 
     alert(
-      `发布成功！\n\nBranch: ${result.branch}\nFile: ${result.filePath}\nCommit: ${
+      `发布成功！\n\nBranch: ${result.branch}\nFile: ${result.filePath}\nBackup: ${
+        result.backupPath || "not created"
+      }\nCommit: ${
         result.commitSha ? result.commitSha.slice(0, 7) : "unknown"
       }`
     );
@@ -1090,6 +1183,7 @@ function bindEvents() {
   $("#uploadCoverBtn").addEventListener("click", uploadCoverImage);
   $("#openMediaLibraryBtn").addEventListener("click", openMediaLibrary);
   $("#refreshMediaBtn").addEventListener("click", loadMediaLibrary);
+  $("#refreshBackupsBtn").addEventListener("click", loadBackups);
   $("#validateBtn").addEventListener("click", runContentValidation);
   $("#closeValidationBtn").addEventListener("click", closeValidationBanner);
 

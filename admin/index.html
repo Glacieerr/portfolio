@@ -21,6 +21,7 @@
       <nav class="nav">
         <button class="nav-btn active" data-panel="worksPanel" type="button">作品管理</button>
         <button class="nav-btn" data-panel="mediaPanel" type="button">媒体库</button>
+        <button class="nav-btn" data-panel="backupPanel" type="button">发布备份</button>
         <button class="nav-btn" data-panel="jsonPanel" type="button">JSON 预览</button>
         <button class="nav-btn" data-panel="helpPanel" type="button">使用说明</button>
       </nav>
@@ -287,6 +288,27 @@
     </div>
 
     <div class="media-library-grid" id="mediaLibraryGrid"></div>
+  </section>
+</section>
+
+<section class="panel" id="backupPanel">
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h3>发布备份</h3>
+        <p class="card-subtitle">
+          每次发布 works.json 前，系统会自动保存旧版本。这里可以查看历史备份。
+        </p>
+      </div>
+
+      <button class="btn small primary" id="refreshBackupsBtn" type="button">刷新备份列表</button>
+    </div>
+
+    <div class="backup-library-status" id="backupLibraryStatus">
+      输入 Admin Key 后，点击「刷新备份列表」读取 data/backups/。
+    </div>
+
+    <div class="backup-list" id="backupList"></div>
   </section>
 </section>
 
