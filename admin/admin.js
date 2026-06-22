@@ -962,15 +962,19 @@ function renderBackupList(items = backupItems) {
       </div>
 
       <div class="backup-actions">
-        <a class="btn small ghost" href="${escapeHTML(item.downloadUrl || "#")}" target="_blank" rel="noopener noreferrer">
-          查看 JSON
-        </a>
-        <a class="btn small ghost" href="${escapeHTML(item.htmlUrl || "#")}" target="_blank" rel="noopener noreferrer">
-          GitHub
-        </a>
+        <button class="btn small danger" type="button" data-restore-backup-path="${escapeHTML(item.path)}">
+          回滚到此备份
+        </button>
       </div>
+
     </article>
   `).join("");
+
+  list.querySelectorAll("[data-restore-backup-path]").forEach((button) => {
+  button.addEventListener("click", () => {
+    restoreBackup(button.dataset.restoreBackupPath);
+  });
+});
 }
 
 async function loadBackups() {
@@ -1019,6 +1023,78 @@ async function loadBackups() {
   } finally {
     refreshBtn.disabled = false;
     refreshBtn.textContent = originalText;
+  }
+}
+
+async function restoreBackup(backupPath) {
+  const adminKey = getCurrentAdminKey();
+
+  if (!adminKey) {
+    alert("请输入 Admin Key。");
+    return;
+  }
+
+  if (!backupPath) {
+    alert("备份路径无效。");
+    return;
+  }
+
+  const firstConfirm = confirm(
+    `确定要回滚到这个备份吗？\n\n${backupPath}\n\n这会覆盖当前 data/works.json。系统会先自动备份当前版本。`
+  );
+
+  if (!firstConfirm) return;
+
+  const secondConfirm = confirm(
+    "二次确认：回滚会改变线上作品数据。\n\n确认继续吗？"
+  );
+
+  if (!secondConfirm) return;
+
+  const button = document.querySelector(`[data-restore-backup-path="${CSS.escape(backupPath)}"]`);
+  const originalText = button ? button.textContent : "";
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "回滚中...";
+  }
+
+  try {
+    const response = await fetch(`${CMS_API_BASE}/api/restore-backup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-key": adminKey
+      },
+      body: JSON.stringify({
+        backupPath
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "回滚失败");
+    }
+
+    alert(
+      `回滚成功！\n\nRestored from: ${result.backupPath}\nSafety backup: ${
+        result.safetyBackupPath || "unknown"
+      }\nRestored works: ${result.restoredCount}\nCommit: ${
+        result.commitSha ? result.commitSha.slice(0, 7) : "unknown"
+      }\n\n请等待 Vercel 自动部署完成，然后刷新前台页面。`
+    );
+
+    await loadWorks();
+    await loadBackups();
+  } catch (error) {
+    console.error(error);
+    alert(`回滚失败：${error.message}`);
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
   }
 }
 

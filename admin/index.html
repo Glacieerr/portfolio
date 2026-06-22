@@ -305,10 +305,15 @@
     </div>
 
     <div class="backup-library-status" id="backupLibraryStatus">
-      输入 Admin Key 后，点击「刷新备份列表」读取 data/backups/。
-    </div>
+  输入 Admin Key 后，点击「刷新备份列表」读取 data/backups/。
+</div>
 
-    <div class="backup-list" id="backupList"></div>
+<div class="backup-danger-note">
+  回滚会用选中的备份覆盖当前 <code>data/works.json</code>。系统会在回滚前自动保存当前版本作为安全备份。
+</div>
+
+<div class="backup-list" id="backupList"></div>
+
   </section>
 </section>
 
