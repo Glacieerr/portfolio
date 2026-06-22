@@ -14,7 +14,7 @@
       "en": "Test Work"
     },
     "desc": {
-      "zh": "这是 CMS 后台创建的第一条测试作品。",
+      "zh": "这是 CMS 后台创建的第一条测试作品。【回滚测试】",
       "en": "This is the first test work created from the CMS admin."
     },
     "link": "#",
@@ -28,7 +28,7 @@
       "JSON"
     ],
     "createdAt": "2026-06-18",
-    "updatedAt": "2026-06-20"
+    "updatedAt": "2026-06-22"
   },
   {
     "id": "cms-feature-test",
