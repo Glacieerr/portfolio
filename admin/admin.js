@@ -940,6 +940,116 @@ function formatBackupName(name) {
     .replace("Z", " UTC");
 }
 
+function getBackupTypeInfo(path) {
+  if (String(path || "").includes("/works-before-restore-")) {
+    return {
+      key: "before-restore",
+      label: "回滚前安全备份",
+      description: "这是执行回滚之前保存的当前版本。通常用于撤销一次错误回滚。"
+    };
+  }
+
+  return {
+    key: "before-publish",
+    label: "发布前备份",
+    description: "这是发布 works.json 之前保存的旧版本。通常是最常用的回滚目标。"
+  };
+}
+
+function closeBackupPreview() {
+  const panel = $("#backupPreview");
+
+  if (panel) {
+    panel.hidden = true;
+  }
+}
+
+function renderBackupPreview(result) {
+  const panel = $("#backupPreview");
+  const title = $("#backupPreviewTitle");
+  const meta = $("#backupPreviewMeta");
+  const note = $("#backupPreviewNote");
+  const list = $("#backupPreviewList");
+
+  if (!panel || !title || !meta || !note || !list) return;
+
+  const summary = result.summary || {};
+  const type = result.backupType || getBackupTypeInfo(result.path);
+
+  panel.hidden = false;
+
+  title.textContent = result.name || "备份摘要";
+  meta.textContent = `${result.path} · ${formatFileSize(result.size)} · ${type.label}`;
+  note.textContent = type.description || "";
+
+  $("#backupSummaryTotal").textContent = summary.total ?? 0;
+  $("#backupSummaryPublished").textContent = summary.published ?? 0;
+  $("#backupSummaryDraft").textContent = summary.draft ?? 0;
+  $("#backupSummaryFeatured").textContent = summary.featured ?? 0;
+
+  const previewItems = Array.isArray(summary.previewItems) ? summary.previewItems : [];
+
+  if (!previewItems.length) {
+    list.innerHTML = `
+      <div class="backup-preview-work">
+        <strong>这个备份里没有作品。</strong>
+        <span>works.json 为空数组。</span>
+      </div>
+    `;
+  } else {
+    list.innerHTML = previewItems.map((work) => `
+      <div class="backup-preview-work">
+        <strong>#${escapeHTML(work.index)} · ${escapeHTML(work.title)}</strong>
+        <span>
+          ${escapeHTML(work.category || "unknown")}
+          · ${escapeHTML(work.status || "published")}
+          · ${work.featured ? "Featured" : "Not Featured"}
+          · ${escapeHTML(work.slug || work.id || "")}
+        </span>
+      </div>
+    `).join("");
+  }
+
+  panel.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+async function previewBackup(backupPath) {
+  const adminKey = getCurrentAdminKey();
+
+  if (!adminKey) {
+    alert("请输入 Admin Key。");
+    return;
+  }
+
+  if (!backupPath) {
+    alert("备份路径无效。");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${CMS_API_BASE}/api/get-backup?path=${encodeURIComponent(backupPath)}`, {
+      method: "GET",
+      headers: {
+        "x-admin-key": adminKey
+      }
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "读取备份摘要失败");
+    }
+
+    renderBackupPreview(result);
+  } catch (error) {
+    console.error(error);
+    alert(`读取备份摘要失败：${error.message}`);
+  }
+}
+
 function renderBackupList(items = backupItems) {
   const list = $("#backupList");
   const status = $("#backupLibraryStatus");
@@ -952,29 +1062,60 @@ function renderBackupList(items = backupItems) {
     return;
   }
 
-  status.textContent = `已读取 ${items.length} 个备份。最新备份显示在最上方。`;
+  status.textContent = `已读取 ${items.length} 个备份。建议先预览摘要，再选择是否回滚。`;
 
-  list.innerHTML = items.map((item) => `
-    <article class="backup-item">
-      <div>
-        <strong>${escapeHTML(formatBackupName(item.name))}</strong>
-        <span>${escapeHTML(item.path)} · ${escapeHTML(formatFileSize(item.size))}</span>
-      </div>
+  list.innerHTML = items.map((item) => {
+    const type = getBackupTypeInfo(item.path);
 
-      <div class="backup-actions">
-        <button class="btn small danger" type="button" data-restore-backup-path="${escapeHTML(item.path)}">
-          回滚到此备份
-        </button>
-      </div>
+    return `
+      <article class="backup-item">
+        <div>
+          <span class="backup-type ${escapeHTML(type.key)}">${escapeHTML(type.label)}</span>
+          <strong>${escapeHTML(formatBackupName(item.name))}</strong>
+          <span>${escapeHTML(item.path)} · ${escapeHTML(formatFileSize(item.size))}</span>
+          <span>${escapeHTML(type.description)}</span>
+        </div>
 
-    </article>
-  `).join("");
+        <div class="backup-actions">
+          <button
+            class="btn small ghost"
+            type="button"
+            data-preview-backup-path="${escapeHTML(item.path)}"
+          >
+            预览摘要
+          </button>
+
+          <a class="btn small ghost" href="${escapeHTML(item.downloadUrl || "#")}" target="_blank" rel="noopener noreferrer">
+            查看 JSON
+          </a>
+
+          <a class="btn small ghost" href="${escapeHTML(item.htmlUrl || "#")}" target="_blank" rel="noopener noreferrer">
+            GitHub
+          </a>
+
+          <button
+            class="btn small danger"
+            type="button"
+            data-restore-backup-path="${escapeHTML(item.path)}"
+          >
+            回滚到此版本
+          </button>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  list.querySelectorAll("[data-preview-backup-path]").forEach((button) => {
+    button.addEventListener("click", () => {
+      previewBackup(button.dataset.previewBackupPath);
+    });
+  });
 
   list.querySelectorAll("[data-restore-backup-path]").forEach((button) => {
-  button.addEventListener("click", () => {
-    restoreBackup(button.dataset.restoreBackupPath);
+    button.addEventListener("click", () => {
+      restoreBackup(button.dataset.restoreBackupPath);
+    });
   });
-});
 }
 
 async function loadBackups() {
@@ -1030,7 +1171,7 @@ async function restoreBackup(backupPath) {
   const adminKey = getCurrentAdminKey();
 
   if (!adminKey) {
-    alert("请输入 Admin Key。");
+    alert("请输入 Admin Key.");
     return;
   }
 
@@ -1039,9 +1180,11 @@ async function restoreBackup(backupPath) {
     return;
   }
 
-  const firstConfirm = confirm(
-    `确定要回滚到这个备份吗？\n\n${backupPath}\n\n这会覆盖当前 data/works.json。系统会先自动备份当前版本。`
-  );
+  const backupType = getBackupTypeInfo(backupPath);
+
+const firstConfirm = confirm(
+  `确定要回滚到这个备份吗？\n\n${backupPath}\n\n类型：${backupType.label}\n${backupType.description}\n\n这会覆盖当前 data/works.json。系统会先自动备份当前版本。`
+);
 
   if (!firstConfirm) return;
 
@@ -1260,6 +1403,7 @@ function bindEvents() {
   $("#openMediaLibraryBtn").addEventListener("click", openMediaLibrary);
   $("#refreshMediaBtn").addEventListener("click", loadMediaLibrary);
   $("#refreshBackupsBtn").addEventListener("click", loadBackups);
+  $("#closeBackupPreviewBtn").addEventListener("click", closeBackupPreview);
   $("#validateBtn").addEventListener("click", runContentValidation);
   $("#closeValidationBtn").addEventListener("click", closeValidationBanner);
 
