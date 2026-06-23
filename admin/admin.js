@@ -978,9 +978,17 @@ function renderBackupPreview(result) {
 
   panel.hidden = false;
 
-  title.textContent = result.name || "备份摘要";
-  meta.textContent = `${result.path} · ${formatFileSize(result.size)} · ${type.label}`;
-  note.textContent = type.description || "";
+title.textContent = result.name || "备份摘要";
+meta.innerHTML = `
+  ${escapeHTML(result.path)}
+  · ${escapeHTML(formatFileSize(result.size))}
+  · ${escapeHTML(type.label)}
+  <br>
+  <span class="backup-preview-fingerprint">
+    Fingerprint: ${escapeHTML(summary.fingerprint || "unknown")}
+  </span>
+`;
+note.textContent = type.description || "";
 
   $("#backupSummaryTotal").textContent = summary.total ?? 0;
   $("#backupSummaryPublished").textContent = summary.published ?? 0;
@@ -997,17 +1005,48 @@ function renderBackupPreview(result) {
       </div>
     `;
   } else {
-    list.innerHTML = previewItems.map((work) => `
-      <div class="backup-preview-work">
-        <strong>#${escapeHTML(work.index)} · ${escapeHTML(work.title)}</strong>
-        <span>
-          ${escapeHTML(work.category || "unknown")}
-          · ${escapeHTML(work.status || "published")}
+    list.innerHTML = previewItems.map((work) => {
+  const tags = Array.isArray(work.tags) ? work.tags : [];
+
+  return `
+    <div class="backup-preview-work">
+      <div class="backup-preview-work-main">
+        <strong>#${escapeHTML(work.index)} · ${escapeHTML(work.title || "Untitled")}</strong>
+
+        <span class="backup-preview-work-meta">
+          category: ${escapeHTML(work.category || "unknown")}
+          · status: ${escapeHTML(work.status || "published")}
           · ${work.featured ? "Featured" : "Not Featured"}
-          · ${escapeHTML(work.slug || work.id || "")}
+          · media: ${escapeHTML(work.mediaType || "image")}
+          · order: ${escapeHTML(work.order ?? "")}
+          · slug: ${escapeHTML(work.slug || work.id || "")}
         </span>
       </div>
-    `).join("");
+
+      <div class="backup-preview-desc">
+        <p><b>中文标题：</b>${escapeHTML(work.titleZh || "空")}</p>
+        <p><b>英文标题：</b>${escapeHTML(work.titleEn || "空")}</p>
+        <p><b>中文描述：</b>${escapeHTML(work.descZh || "空")}</p>
+        <p><b>英文描述：</b>${escapeHTML(work.descEn || "空")}</p>
+      </div>
+
+      <div class="backup-preview-paths">
+        <span><b>img:</b> ${escapeHTML(work.img || "空")}</span>
+        <span><b>video:</b> ${escapeHTML(work.video || "空")}</span>
+        <span><b>link:</b> ${escapeHTML(work.link || "空")}</span>
+        <span><b>createdAt:</b> ${escapeHTML(work.createdAt || "空")} · <b>updatedAt:</b> ${escapeHTML(work.updatedAt || "空")}</span>
+      </div>
+
+      <div class="backup-preview-tags">
+        ${
+          tags.length
+            ? tags.map((tag) => `<span>${escapeHTML(tag)}</span>`).join("")
+            : "<span>无标签</span>"
+        }
+      </div>
+    </div>
+  `;
+}).join("");
   }
 
   panel.scrollIntoView({

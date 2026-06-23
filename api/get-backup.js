@@ -87,7 +87,35 @@ function getTitle(work) {
   );
 }
 
-function summarizeWorks(works) {
+function createContentFingerprint(text) {
+  let hash = 5381;
+  const value = String(text || "");
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = ((hash << 5) + hash) + value.charCodeAt(index);
+    hash >>>= 0;
+  }
+
+  return hash.toString(16).padStart(8, "0");
+}
+
+function truncateText(value, maxLength = 180) {
+  const text = normalizeText(value).replace(/\s+/g, " ");
+
+  if (text.length <= maxLength) return text;
+
+  return `${text.slice(0, maxLength)}...`;
+}
+
+function normalizeTags(tags) {
+  if (!Array.isArray(tags)) return [];
+
+  return tags
+    .map((tag) => normalizeText(tag))
+    .filter(Boolean);
+}
+
+function summarizeWorks(works, rawText = "") {
   const published = works.filter((work) => work.status !== "draft");
   const draft = works.filter((work) => work.status === "draft");
   const featured = works.filter((work) => work.featured);
@@ -97,16 +125,27 @@ function summarizeWorks(works) {
     published: published.length,
     draft: draft.length,
     featured: featured.length,
-    previewItems: works.slice(0, 12).map((work, index) => ({
+    fingerprint: createContentFingerprint(rawText),
+    previewItems: works.slice(0, 20).map((work, index) => ({
       index: index + 1,
       id: work.id || "",
       slug: work.slug || "",
+      order: work.order ?? "",
       title: getTitle(work),
+      titleZh: normalizeText(work?.title?.zh),
+      titleEn: normalizeText(work?.title?.en),
+      descZh: truncateText(work?.desc?.zh),
+      descEn: truncateText(work?.desc?.en),
       category: work.category || "",
       status: work.status || "published",
       featured: Boolean(work.featured),
       mediaType: work.mediaType || "image",
-      img: work.img || ""
+      img: work.img || "",
+      video: work.video || "",
+      link: work.link || "",
+      tags: normalizeTags(work.tags),
+      createdAt: work.createdAt || "",
+      updatedAt: work.updatedAt || ""
     }))
   };
 }
@@ -186,7 +225,7 @@ export async function GET(request) {
     }
 
     const backupType = getBackupType(backupPath);
-    const summary = summarizeWorks(works);
+    const summary = summarizeWorks(works, text);
 
     return json({
       ok: true,

@@ -911,3 +911,76 @@ select:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.backup-preview-fingerprint {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #bfdbfe;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  background: rgba(30, 64, 175, 0.16);
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.backup-preview-work {
+  display: grid;
+  gap: 8px;
+}
+
+.backup-preview-work-main {
+  display: grid;
+  gap: 4px;
+}
+
+.backup-preview-work-meta {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.backup-preview-desc {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.backup-preview-desc p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.backup-preview-desc b {
+  color: #93c5fd;
+  font-weight: 800;
+}
+
+.backup-preview-paths {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.backup-preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.backup-preview-tags span {
+  display: inline-flex;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #dbeafe;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.54);
+  font-size: 0.68rem;
+}
