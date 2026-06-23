@@ -305,10 +305,37 @@
     </div>
 
     <div class="backup-library-status" id="backupLibraryStatus">
-      输入 Admin Key 后，点击「刷新备份列表」读取 data/backups/。
-    </div>
+  输入 Admin Key 后，点击「刷新备份列表」读取 data/backups/。
+</div>
 
-    <div class="backup-list" id="backupList"></div>
+<div class="backup-danger-note">
+  回滚会用选中的备份覆盖当前 <code>data/works.json</code>。系统会在回滚前自动保存当前版本作为安全备份。
+  建议先点击「预览摘要」，确认备份内容后再回滚。
+</div>
+
+<div class="backup-preview" id="backupPreview" hidden>
+  <div class="backup-preview-head">
+    <div>
+      <strong id="backupPreviewTitle">备份摘要</strong>
+      <p id="backupPreviewMeta">请选择一个备份进行预览。</p>
+    </div>
+    <button class="btn small ghost" id="closeBackupPreviewBtn" type="button">关闭预览</button>
+  </div>
+
+  <div class="backup-summary-grid">
+    <div><b id="backupSummaryTotal">0</b><span>全部作品</span></div>
+    <div><b id="backupSummaryPublished">0</b><span>Published</span></div>
+    <div><b id="backupSummaryDraft">0</b><span>Draft</span></div>
+    <div><b id="backupSummaryFeatured">0</b><span>Featured</span></div>
+  </div>
+
+  <div class="backup-preview-note" id="backupPreviewNote"></div>
+
+  <div class="backup-preview-list" id="backupPreviewList"></div>
+</div>
+
+<div class="backup-list" id="backupList"></div>
+
   </section>
 </section>
 
