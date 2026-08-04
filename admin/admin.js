@@ -2,6 +2,7 @@ let works = [];
 let selectedId = null;
 let mediaLibraryItems = [];
 let backupItems = [];
+let lastPublishDiff = null;
 
 const CMS_API_BASE = "https://portfolio-flame-seven-33.vercel.app";
 
@@ -410,6 +411,365 @@ function closeValidationBanner() {
 
   if (banner) {
     banner.hidden = true;
+  }
+}
+
+function createSimpleFingerprint(value) {
+  const text = JSON.stringify(value ?? "");
+  let hash = 5381;
+
+  for (let index = 0; index < text.length; index += 1) {
+    hash = ((hash << 5) + hash) + text.charCodeAt(index);
+    hash >>>= 0;
+  }
+
+  return hash.toString(16).padStart(8, "0");
+}
+
+function getDiffWorkKey(work, fallbackIndex = 0) {
+  return createIdFromSlug(work?.id || work?.slug) || `index-${fallbackIndex}`;
+}
+
+function getDiffWorkTitle(work) {
+  return (
+    normalizeText(work?.title?.zh) ||
+    normalizeText(work?.title?.en) ||
+    normalizeText(work?.slug) ||
+    normalizeText(work?.id) ||
+    "Untitled"
+  );
+}
+
+function normalizeTagsForDiff(tags) {
+  if (!Array.isArray(tags)) return [];
+
+  return tags
+    .map((tag) => normalizeText(tag))
+    .filter(Boolean);
+}
+
+function comparableWork(work) {
+  return {
+    id: normalizeText(work?.id),
+    slug: normalizeText(work?.slug),
+    category: normalizeText(work?.category),
+    status: normalizeText(work?.status || "published"),
+    featured: Boolean(work?.featured),
+    order: Number(work?.order || 0),
+    mediaType: normalizeText(work?.mediaType || "image"),
+    img: normalizeText(work?.img),
+    video: normalizeText(work?.video),
+    link: normalizeText(work?.link),
+    titleZh: normalizeText(work?.title?.zh),
+    titleEn: normalizeText(work?.title?.en),
+    descZh: normalizeText(work?.desc?.zh),
+    descEn: normalizeText(work?.desc?.en),
+    linkTextZh: normalizeText(work?.linkText?.zh),
+    linkTextEn: normalizeText(work?.linkText?.en),
+    tags: normalizeTagsForDiff(work?.tags),
+    createdAt: normalizeText(work?.createdAt),
+    updatedAt: normalizeText(work?.updatedAt)
+  };
+}
+
+function formatDiffValue(value) {
+  if (Array.isArray(value)) {
+    return value.length ? value.join(", ") : "空";
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
+
+  const text = normalizeText(value);
+
+  if (!text) return "空";
+
+  if (text.length > 160) {
+    return `${text.slice(0, 160)}...`;
+  }
+
+  return text;
+}
+
+function getWorkFieldChanges(beforeWork, afterWork) {
+  const before = comparableWork(beforeWork);
+  const after = comparableWork(afterWork);
+  const fields = [
+    ["titleZh", "中文标题"],
+    ["titleEn", "英文标题"],
+    ["descZh", "中文描述"],
+    ["descEn", "英文描述"],
+    ["category", "分类"],
+    ["status", "发布状态"],
+    ["featured", "Featured"],
+    ["order", "排序"],
+    ["mediaType", "媒体类型"],
+    ["img", "封面路径"],
+    ["video", "视频路径"],
+    ["link", "链接"],
+    ["linkTextZh", "中文按钮文案"],
+    ["linkTextEn", "英文按钮文案"],
+    ["tags", "标签"],
+    ["createdAt", "创建时间"],
+    ["updatedAt", "更新时间"]
+  ];
+
+  return fields
+    .filter(([key]) => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
+    .map(([key, label]) => ({
+      key,
+      label,
+      before: before[key],
+      after: after[key]
+    }));
+}
+
+function buildWorksMap(items = []) {
+  const map = new Map();
+
+  items.forEach((work, index) => {
+    const key = getDiffWorkKey(work, index);
+    map.set(key, {
+      key,
+      work,
+      index,
+      fingerprint: createSimpleFingerprint(comparableWork(work))
+    });
+  });
+
+  return map;
+}
+
+function createPublishDiff(remoteWorks = [], localWorks = []) {
+  const remoteMap = buildWorksMap(remoteWorks);
+  const localMap = buildWorksMap(localWorks);
+
+  const added = [];
+  const removed = [];
+  const modified = [];
+  const unchanged = [];
+
+  localMap.forEach((localItem, key) => {
+    const remoteItem = remoteMap.get(key);
+
+    if (!remoteItem) {
+      added.push({
+        key,
+        work: localItem.work,
+        title: getDiffWorkTitle(localItem.work)
+      });
+      return;
+    }
+
+    if (remoteItem.fingerprint !== localItem.fingerprint) {
+      modified.push({
+        key,
+        before: remoteItem.work,
+        after: localItem.work,
+        title: getDiffWorkTitle(localItem.work),
+        changes: getWorkFieldChanges(remoteItem.work, localItem.work)
+      });
+      return;
+    }
+
+    unchanged.push({
+      key,
+      work: localItem.work,
+      title: getDiffWorkTitle(localItem.work)
+    });
+  });
+
+  remoteMap.forEach((remoteItem, key) => {
+    if (!localMap.has(key)) {
+      removed.push({
+        key,
+        work: remoteItem.work,
+        title: getDiffWorkTitle(remoteItem.work)
+      });
+    }
+  });
+
+  return {
+    added,
+    removed,
+    modified,
+    unchanged,
+    totalChanges: added.length + removed.length + modified.length
+  };
+}
+
+function closePublishDiff() {
+  const banner = $("#publishDiffBanner");
+
+  if (banner) {
+    banner.hidden = true;
+  }
+}
+
+function renderDiffItem(type, item) {
+  const labelMap = {
+    added: "新增",
+    modified: "修改",
+    removed: "删除",
+    unchanged: "未变化"
+  };
+
+  const title = item.title || getDiffWorkTitle(item.work || item.after || item.before);
+  const key = item.key || "";
+
+  let fieldsHTML = "";
+
+  if (type === "modified") {
+    fieldsHTML = item.changes.length
+      ? `
+        <div class="diff-field-list">
+          ${item.changes.map((change) => `
+            <div class="diff-field">
+              <b>${escapeHTML(change.label)}</b><br>
+              <span>旧：${escapeHTML(formatDiffValue(change.before))}</span><br>
+              <span>新：${escapeHTML(formatDiffValue(change.after))}</span>
+            </div>
+          `).join("")}
+        </div>
+      `
+      : `<div class="diff-field">检测到内容变化，但字段差异摘要为空。</div>`;
+  } else if (type === "added") {
+    const work = item.work || {};
+    fieldsHTML = `
+      <div class="diff-field-list">
+        <div class="diff-field"><b>中文描述</b><br><span>${escapeHTML(formatDiffValue(work?.desc?.zh))}</span></div>
+        <div class="diff-field"><b>英文描述</b><br><span>${escapeHTML(formatDiffValue(work?.desc?.en))}</span></div>
+        <div class="diff-field"><b>封面路径</b><br><span>${escapeHTML(formatDiffValue(work.img))}</span></div>
+      </div>
+    `;
+  } else if (type === "removed") {
+    const work = item.work || {};
+    fieldsHTML = `
+      <div class="diff-field-list">
+        <div class="diff-field"><b>将被删除的作品</b><br><span>${escapeHTML(formatDiffValue(work.slug || work.id || title))}</span></div>
+      </div>
+    `;
+  } else {
+    fieldsHTML = `<div class="diff-field">这个作品没有变化。</div>`;
+  }
+
+  return `
+    <article class="diff-item ${escapeHTML(type)}">
+      <div class="diff-item-head">
+        <strong>${escapeHTML(title)} · ${escapeHTML(key)}</strong>
+        <span class="diff-badge ${escapeHTML(type)}">${escapeHTML(labelMap[type] || type)}</span>
+      </div>
+      ${fieldsHTML}
+    </article>
+  `;
+}
+
+function renderPublishDiff(report, remoteMeta = {}) {
+  const banner = $("#publishDiffBanner");
+  const title = $("#publishDiffTitle");
+  const summary = $("#publishDiffSummary");
+  const meta = $("#publishDiffMeta");
+  const list = $("#publishDiffList");
+
+  if (!banner || !title || !summary || !meta || !list) return;
+
+  banner.hidden = false;
+
+  $("#diffAddedCount").textContent = report.added.length;
+  $("#diffModifiedCount").textContent = report.modified.length;
+  $("#diffRemovedCount").textContent = report.removed.length;
+  $("#diffUnchangedCount").textContent = report.unchanged.length;
+
+  title.textContent = "发布差异预览";
+
+  if (report.totalChanges === 0) {
+    summary.textContent = "当前 CMS 数据与 GitHub 远程 works.json 没有差异。";
+  } else {
+    summary.textContent = `检测到 ${report.totalChanges} 个变更：${report.added.length} 个新增，${report.modified.length} 个修改，${report.removed.length} 个删除。`;
+  }
+
+  meta.innerHTML = `
+    Remote branch: ${escapeHTML(remoteMeta.branch || "unknown")}
+    · File: ${escapeHTML(remoteMeta.filePath || "data/works.json")}
+    · Remote fingerprint: ${escapeHTML(remoteMeta.fingerprint || "unknown")}
+  `;
+
+  const html = [
+    ...report.added.map((item) => renderDiffItem("added", item)),
+    ...report.modified.map((item) => renderDiffItem("modified", item)),
+    ...report.removed.map((item) => renderDiffItem("removed", item))
+  ];
+
+  if (!html.length) {
+    html.push(...report.unchanged.slice(0, 8).map((item) => renderDiffItem("unchanged", item)));
+  }
+
+  list.innerHTML = html.join("");
+
+  banner.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+async function fetchRemoteWorks() {
+  const adminKey = getCurrentAdminKey();
+
+  if (!adminKey) {
+    throw new Error("请输入 Admin Key。");
+  }
+
+  const response = await fetch(`${CMS_API_BASE}/api/get-works`, {
+    method: "GET",
+    headers: {
+      "x-admin-key": adminKey
+    }
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.ok) {
+    throw new Error(result.error || "读取远程 works.json 失败。");
+  }
+
+  return result;
+}
+
+async function runPublishDiff(options = {}) {
+  const diffBtn = $("#diffBtn");
+  const originalText = diffBtn ? diffBtn.textContent : "";
+
+  if (diffBtn) {
+    diffBtn.disabled = true;
+    diffBtn.textContent = "对比中...";
+  }
+
+  try {
+    const remote = await fetchRemoteWorks();
+    const report = createPublishDiff(remote.works, works);
+
+    lastPublishDiff = {
+      report,
+      remote
+    };
+
+    renderPublishDiff(report, remote);
+
+    return lastPublishDiff;
+  } catch (error) {
+    console.error(error);
+
+    if (!options.silent) {
+      alert(`发布差异读取失败：${error.message}`);
+    }
+
+    throw error;
+  } finally {
+    if (diffBtn) {
+      diffBtn.disabled = false;
+      diffBtn.textContent = originalText;
+    }
   }
 }
 
@@ -1312,11 +1672,43 @@ if (validationReport.warnings.length > 0) {
   if (!continuePublish) return;
 }
 
-  const confirmed = confirm(
-    "确定发布到 GitHub 吗？\n\n当前 CMS 中的 works 列表会写入 GitHub 仓库的 data/works.json。"
+  let diffPayload = null;
+
+try {
+  diffPayload = await runPublishDiff({
+    silent: true
+  });
+} catch (error) {
+  const continueWithoutDiff = confirm(
+    `发布前差异读取失败：${error.message}\n\n是否仍然继续发布？`
   );
 
-  if (!confirmed) return;
+  if (!continueWithoutDiff) return;
+}
+
+if (diffPayload?.report) {
+  const report = diffPayload.report;
+
+  if (report.totalChanges === 0) {
+    const publishWithoutChanges = confirm(
+      "当前 CMS 数据与 GitHub 远程 works.json 没有检测到差异。\n\n是否仍然继续发布？"
+    );
+
+    if (!publishWithoutChanges) return;
+  } else {
+    const confirmedDiff = confirm(
+      `发布前检测到 ${report.totalChanges} 个变更：\n\n新增：${report.added.length}\n修改：${report.modified.length}\n删除：${report.removed.length}\n\n请确认已经查看页面上的「发布差异」。是否继续发布？`
+    );
+
+    if (!confirmedDiff) return;
+  }
+}
+
+const confirmed = confirm(
+  "最终确认：确定发布到 GitHub 吗？\n\n当前 CMS 中的 works 列表会写入 GitHub 仓库的 data/works.json。"
+);
+
+if (!confirmed) return;
 
   const publishBtn = $("#publishBtn");
   const originalText = publishBtn.textContent;
@@ -1445,6 +1837,8 @@ function bindEvents() {
   $("#closeBackupPreviewBtn").addEventListener("click", closeBackupPreview);
   $("#validateBtn").addEventListener("click", runContentValidation);
   $("#closeValidationBtn").addEventListener("click", closeValidationBanner);
+  $("#diffBtn").addEventListener("click", () => runPublishDiff());
+  $("#closeDiffBtn").addEventListener("click", closePublishDiff);
 
   listFilters.search.addEventListener("input", renderWorkList);
   listFilters.category.addEventListener("change", renderWorkList);

@@ -58,6 +58,7 @@
           <button class="btn ghost" id="reloadBtn" type="button">重新读取</button>
           <button class="btn ghost" id="exportBtn" type="button">导出 works.json</button>
           <button class="btn ghost" id="validateBtn" type="button">检查内容</button>
+          <button class="btn ghost" id="diffBtn" type="button">发布差异</button>
           <button class="btn primary" id="publishBtn" type="button">发布到 GitHub</button>
         </div>
       </header>
@@ -82,6 +83,26 @@
       <ul id="validationWarnings"></ul>
     </div>
   </div>
+      </div>
+
+      <div class="publish-diff-banner" id="publishDiffBanner" hidden>
+  <div class="publish-diff-head">
+    <div>
+      <strong id="publishDiffTitle">发布差异</strong>
+      <p id="publishDiffSummary">等待对比当前 CMS 数据与 GitHub 远程 works.json。</p>
+    </div>
+    <button class="btn small ghost" id="closeDiffBtn" type="button">关闭</button>
+  </div>
+
+  <div class="publish-diff-stats">
+    <div><b id="diffAddedCount">0</b><span>新增</span></div>
+    <div><b id="diffModifiedCount">0</b><span>修改</span></div>
+    <div><b id="diffRemovedCount">0</b><span>删除</span></div>
+    <div><b id="diffUnchangedCount">0</b><span>未变化</span></div>
+  </div>
+
+  <div class="publish-diff-meta" id="publishDiffMeta"></div>
+  <div class="publish-diff-list" id="publishDiffList"></div>
 </div>
 
       <section class="panel active" id="worksPanel">
