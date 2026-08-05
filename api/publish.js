@@ -119,12 +119,21 @@ export async function POST(request) {
 
     const body = await request.json();
     const works = body.works;
+    const expectedSha = String(body.expectedSha || "").trim();
     const message = createPublishMessage(body.message);
 
     if (!Array.isArray(works)) {
       return json({
         ok: false,
         error: "Invalid payload: works must be an array"
+      }, 400);
+    }
+
+    if (!expectedSha) {
+      return json({
+        ok: false,
+        code: "MISSING_EXPECTED_SHA",
+        error: "Missing expectedSha. Run publish diff before publishing."
       }, 400);
     }
 
@@ -148,6 +157,18 @@ export async function POST(request) {
     const currentFile = await currentResponse.json();
     const currentSha = currentFile.sha;
     const currentContentBase64 = String(currentFile.content || "").replace(/\n/g, "");
+
+    if (currentSha !== expectedSha) {
+      return json({
+        ok: false,
+        code: "REMOTE_CHANGED",
+        error: "Remote works.json changed after the publish diff was generated.",
+        expectedSha,
+        currentSha,
+        branch,
+        filePath
+      }, 409);
+    }
 
     const backupTimestamp = createBackupTimestamp();
     const backupPath = `${backupFolder}/works-${backupTimestamp}.json`;

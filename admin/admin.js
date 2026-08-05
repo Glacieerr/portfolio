@@ -644,12 +644,149 @@ function createPublishDiff(remoteWorks = [], localWorks = []) {
   };
 }
 
+function hasUnsavedEditorChanges() {
+  const draft = getCurrentFormDraftForValidation();
+
+  if (!draft) {
+    return false;
+  }
+
+  const draftKey = getDiffWorkKey(draft);
+
+  const savedWork = works.find((work, index) => {
+    return getDiffWorkKey(work, index) === draftKey;
+  });
+
+  if (!savedWork) {
+    return true;
+  }
+
+  return (
+    JSON.stringify(comparableWork(savedWork)) !==
+    JSON.stringify(comparableWork(draft))
+  );
+}
+
+function ensureEditorSavedBeforeRemoteAction(actionName = "继续") {
+  if (!hasUnsavedEditorChanges()) {
+    return true;
+  }
+
+  alert(
+    `当前编辑表单中存在尚未保存到本地列表的修改。\n\n请先点击「保存到本地列表」，然后再${actionName}。`
+  );
+
+  return false;
+}
+
 function closePublishDiff() {
   const banner = $("#publishDiffBanner");
 
   if (banner) {
     banner.hidden = true;
   }
+}
+
+async function syncRemoteWorks() {
+  const adminKey = getCurrentAdminKey();
+
+  if (!adminKey) {
+    alert("请输入 Admin Key。");
+    return;
+  }
+
+  const confirmed = confirm(
+    "确定用 GitHub 远程 works.json 覆盖当前 CMS 内存数据吗？\n\n当前尚未发布的本地列表修改将丢失。\n\n需要保留时，请先使用「导出 works.json」进行备份。"
+  );
+
+  if (!confirmed) return;
+
+  const syncBtn = $("#syncRemoteBtn");
+  const originalText = syncBtn?.textContent || "";
+
+  if (syncBtn) {
+    syncBtn.disabled = true;
+    syncBtn.textContent = "同步中...";
+  }
+
+  try {
+    const remote = await fetchRemoteWorks();
+
+    works = Array.isArray(remote.works)
+      ? remote.works
+      : [];
+
+    selectedId = null;
+    lastPublishDiff = null;
+
+    resetForm();
+    renderWorkList();
+    updateJsonPreview();
+    closePublishDiff();
+
+    alert(
+      `远程数据同步完成！\n\nBranch: ${remote.branch}\nFile: ${remote.filePath}\nWorks: ${works.length}\nSHA: ${
+        remote.sha ? remote.sha.slice(0, 7) : "unknown"
+      }`
+    );
+  } catch (error) {
+    console.error(error);
+    alert(`同步远程数据失败：${error.message}`);
+  } finally {
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.textContent = originalText;
+    }
+  }
+}
+
+function showRemoteConflict(result) {
+  const banner = $("#publishDiffBanner");
+  const title = $("#publishDiffTitle");
+  const summary = $("#publishDiffSummary");
+  const meta = $("#publishDiffMeta");
+  const list = $("#publishDiffList");
+
+  if (!banner || !title || !summary || !meta || !list) {
+    return;
+  }
+
+  banner.hidden = false;
+  banner.classList.add("is-conflict");
+
+  title.textContent = "发布已阻止：远程版本发生变化";
+
+  summary.textContent =
+    "你运行发布差异后，GitHub 上的 works.json 又被其他页面、设备或提交更新。系统已阻止覆盖。";
+
+  $("#diffAddedCount").textContent = "—";
+  $("#diffModifiedCount").textContent = "—";
+  $("#diffRemovedCount").textContent = "—";
+  $("#diffUnchangedCount").textContent = "—";
+
+  meta.innerHTML = `
+    Branch: ${escapeHTML(result.branch || "unknown")}
+    · File: ${escapeHTML(result.filePath || "data/works.json")}
+    <br>
+    Expected SHA: ${escapeHTML(result.expectedSha || "unknown")}
+    <br>
+    Current SHA: ${escapeHTML(result.currentSha || "unknown")}
+  `;
+
+  list.innerHTML = `
+    <div class="remote-conflict-message">
+      <strong>当前发布请求已经失效。</strong>
+      <br><br>
+      请先点击「重新运行差异」，查看本地数据相对于最新远程版本会产生哪些修改。
+      <br><br>
+      需要完全采用远程版本时，点击「同步远程版本」。同步前可以先使用顶部的「导出 works.json」保存本地副本。
+    </div>
+  `;
+
+  banner.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
 }
 
 function renderDiffItem(type, item) {
@@ -720,6 +857,7 @@ function renderPublishDiff(report, remoteMeta = {}) {
   if (!banner || !title || !summary || !meta || !list) return;
 
   banner.hidden = false;
+  banner.classList.remove("is-conflict");
 
   $("#diffAddedCount").textContent = report.added.length;
   $("#diffModifiedCount").textContent = report.modified.length;
@@ -782,6 +920,10 @@ async function fetchRemoteWorks() {
 }
 
 async function runPublishDiff(options = {}) {
+  if (!ensureEditorSavedBeforeRemoteAction("运行发布差异")) {
+    return null;
+  }
+
   const diffBtn = $("#diffBtn");
   const originalText = diffBtn ? diffBtn.textContent : "";
 
@@ -1845,6 +1987,10 @@ async function publishToGitHub() {
     return;
   }
 
+  if (!ensureEditorSavedBeforeRemoteAction("发布")) {
+  return;
+}
+
   const publishNote = getPublishNote();
 
 if (publishNote.length < 4) {
@@ -1882,18 +2028,28 @@ if (validationReport.warnings.length > 0) {
   if (!continuePublish) return;
 }
 
-  let diffPayload = null;
+let diffPayload = null;
 
 try {
   diffPayload = await runPublishDiff({
     silent: true
   });
 } catch (error) {
-  const continueWithoutDiff = confirm(
-    `发布前差异读取失败：${error.message}\n\n是否仍然继续发布？`
+  alert(
+    `发布已阻止：无法读取远程 works.json 进行版本核对。\n\n${error.message}`
   );
+  return;
+}
 
-  if (!continueWithoutDiff) return;
+if (!diffPayload) {
+  return;
+}
+
+if (!diffPayload.remote?.sha) {
+  alert(
+    "发布已阻止：远程 works.json 没有返回有效 SHA。请重新运行发布差异。"
+  );
+  return;
 }
 
 if (diffPayload?.report) {
@@ -1916,8 +2072,10 @@ if (diffPayload?.report) {
 
 const publishMessage = buildPublishCommitMessage(
   publishNote,
-  diffPayload?.report
+  diffPayload.report
 );
+
+const expectedSha = diffPayload.remote.sha;
 
 const confirmed = confirm(
   `最终确认：确定发布到 GitHub 吗？\n\n提交信息：\n${publishMessage}\n\n当前 CMS 中的 works 列表会写入 GitHub 仓库的 data/works.json。`
@@ -1940,15 +2098,29 @@ if (!confirmed) return;
       },
       body: JSON.stringify({
         works,
-        message: publishMessage
+        message: publishMessage,
+        expectedSha
       })
     });
 
     const result = await response.json();
 
-    if (!response.ok || !result.ok) {
-      throw new Error(result.error || "发布失败");
-    }
+if (
+  response.status === 409 &&
+  result.code === "REMOTE_CHANGED"
+) {
+  showRemoteConflict(result);
+
+  alert(
+    "发布已阻止：GitHub 远程 works.json 在你确认发布期间发生了变化。\n\n请重新运行发布差异，或者同步远程版本。"
+  );
+
+  return;
+}
+
+if (!response.ok || !result.ok) {
+  throw new Error(result.error || "发布失败");
+}
 
     alert(
   `发布成功！\n\nBranch: ${result.branch}\nFile: ${result.filePath}\nBackup: ${
@@ -1959,6 +2131,7 @@ if (!confirmed) return;
 );
 
 clearPublishNote();
+lastPublishDiff = null;
 
 await loadPublishHistory({
   silent: true
@@ -2062,6 +2235,13 @@ function bindEvents() {
   $("#closeValidationBtn").addEventListener("click", closeValidationBanner);
   $("#diffBtn").addEventListener("click", () => runPublishDiff());
   $("#closeDiffBtn").addEventListener("click", closePublishDiff);
+
+  $("#rerunDiffBtn").addEventListener("click", () => {
+  runPublishDiff();
+});
+
+$("#syncRemoteBtn").addEventListener("click", syncRemoteWorks);
+
   $("#publishNoteInput").addEventListener("input", updatePublishNoteCount);
 $("#clearPublishNoteBtn").addEventListener("click", clearPublishNote);
 $("#refreshPublishHistoryBtn").addEventListener("click", () => {
