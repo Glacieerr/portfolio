@@ -22,6 +22,14 @@
         <button class="nav-btn active" data-panel="worksPanel" type="button">作品管理</button>
         <button class="nav-btn" data-panel="mediaPanel" type="button">媒体库</button>
         <button class="nav-btn" data-panel="backupPanel" type="button">发布备份</button>
+        <button
+          class="nav-btn"
+          id="publishHistoryNavBtn"
+          data-panel="publishHistoryPanel"
+          type="button"
+        >
+          发布历史
+        </button>
         <button class="nav-btn" data-panel="jsonPanel" type="button">JSON 预览</button>
         <button class="nav-btn" data-panel="helpPanel" type="button">使用说明</button>
       </nav>
@@ -106,7 +114,35 @@
 </div>
 
       <section class="panel active" id="worksPanel">
-        <div class="layout">
+  <div class="publish-note-card">
+    <div class="publish-note-head">
+      <div>
+        <strong>本次发布说明</strong>
+        <p>
+          简要说明这次修改的目的。它会成为 GitHub 中
+          <code>data/works.json</code> 的提交信息。
+        </p>
+      </div>
+
+      <button class="btn small ghost" id="clearPublishNoteBtn" type="button">
+        清空
+      </button>
+    </div>
+
+    <textarea
+      id="publishNoteInput"
+      rows="2"
+      maxlength="120"
+      placeholder="例如：更新声藏项目描述并替换核心项目封面"
+    ></textarea>
+
+    <div class="publish-note-footer">
+      <span>发布说明为必填项，建议描述修改目的，而不是只写“更新”。</span>
+      <span id="publishNoteCount">0 / 120</span>
+    </div>
+  </div>
+
+  <div class="layout">
           <section class="card list-card">
             <div class="card-head">
               <h3>作品列表</h3>
@@ -357,6 +393,33 @@
 
 <div class="backup-list" id="backupList"></div>
 
+  </section>
+</section>
+
+<section class="panel" id="publishHistoryPanel">
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h3>发布历史</h3>
+        <p class="card-subtitle">
+          显示 GitHub 中修改过 data/works.json 的最近提交记录。
+        </p>
+      </div>
+
+      <button
+        class="btn small primary"
+        id="refreshPublishHistoryBtn"
+        type="button"
+      >
+        刷新发布历史
+      </button>
+    </div>
+
+    <div class="publish-history-status" id="publishHistoryStatus">
+      输入 Admin Key 后，点击「刷新发布历史」读取提交记录。
+    </div>
+
+    <div class="publish-history-list" id="publishHistoryList"></div>
   </section>
 </section>
 
