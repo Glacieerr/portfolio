@@ -2,6 +2,7 @@ let works = [];
 let selectedId = null;
 let mediaLibraryItems = [];
 let backupItems = [];
+let publishHistoryItems = [];
 let lastPublishDiff = null;
 
 const CMS_API_BASE = "https://portfolio-flame-seven-33.vercel.app";
@@ -94,6 +95,50 @@ function saveAdminKey() {
 
 function getCurrentAdminKey() {
   return $("#adminKeyInput").value.trim();
+}
+
+function getPublishNote() {
+  const input = $("#publishNoteInput");
+
+  return String(input?.value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
+
+function updatePublishNoteCount() {
+  const input = $("#publishNoteInput");
+  const counter = $("#publishNoteCount");
+
+  if (!input || !counter) return;
+
+  counter.textContent = `${input.value.length} / 120`;
+}
+
+function clearPublishNote() {
+  const input = $("#publishNoteInput");
+
+  if (!input) return;
+
+  input.value = "";
+  updatePublishNoteCount();
+}
+
+function buildPublishCommitMessage(note, report) {
+  const cleanNote = String(note || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+
+  if (!report) {
+    return `cms: ${cleanNote}`;
+  }
+
+  const added = report.added?.length || 0;
+  const modified = report.modified?.length || 0;
+  const removed = report.removed?.length || 0;
+
+  return `cms: ${cleanNote} [+${added} ~${modified} -${removed}]`;
 }
 
 function fileToBase64(file) {
@@ -1300,6 +1345,153 @@ function formatBackupName(name) {
     .replace("Z", " UTC");
 }
 
+function formatPublishHistoryDate(value) {
+  if (!value) return "未知时间";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function renderPublishHistory(items = publishHistoryItems) {
+  const list = $("#publishHistoryList");
+  const status = $("#publishHistoryStatus");
+
+  if (!list || !status) return;
+
+  if (!items.length) {
+    status.textContent = "没有读取到 data/works.json 的历史提交。";
+    list.innerHTML = "";
+    return;
+  }
+
+  status.textContent =
+    `已读取 ${items.length} 条记录。列表只包含影响 data/works.json 的提交。`;
+
+  list.innerHTML = items
+    .map((item) => {
+      const typeKey = item.type?.key || "manual";
+      const typeLabel = item.type?.label || "其他提交";
+
+      return `
+        <article class="publish-history-item">
+          <div class="publish-history-main">
+            <span class="publish-history-type ${escapeHTML(typeKey)}">
+              ${escapeHTML(typeLabel)}
+            </span>
+
+            <strong>${escapeHTML(item.title || "Untitled commit")}</strong>
+
+            ${
+              item.body
+                ? `
+                  <div class="publish-history-body">
+                    ${escapeHTML(item.body)}
+                  </div>
+                `
+                : ""
+            }
+
+            <div class="publish-history-meta">
+              <span>${escapeHTML(formatPublishHistoryDate(item.date))}</span>
+              <span>${escapeHTML(item.authorName || "Unknown author")}</span>
+              <span class="publish-history-sha">
+                ${escapeHTML(item.shortSha || "")}
+              </span>
+              <span>${item.verified ? "Verified" : "Unverified"}</span>
+            </div>
+          </div>
+
+          <div>
+            <a
+              class="btn small ghost"
+              href="${escapeHTML(item.htmlUrl || "#")}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              查看提交
+            </a>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+async function loadPublishHistory(options = {}) {
+  const adminKey = getCurrentAdminKey();
+
+  if (!adminKey) {
+    if (!options.silent) {
+      alert("请输入 Admin Key。");
+    }
+
+    return;
+  }
+
+  const refreshBtn = $("#refreshPublishHistoryBtn");
+  const status = $("#publishHistoryStatus");
+  const originalText = refreshBtn?.textContent || "";
+
+  if (refreshBtn) {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = "读取中...";
+  }
+
+  if (status) {
+    status.textContent = "正在从 GitHub 读取 data/works.json 的提交历史...";
+  }
+
+  try {
+    const response = await fetch(
+      `${CMS_API_BASE}/api/list-publishes?limit=30`,
+      {
+        method: "GET",
+        headers: {
+          "x-admin-key": adminKey
+        }
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "读取发布历史失败");
+    }
+
+    publishHistoryItems = Array.isArray(result.items)
+      ? result.items
+      : [];
+
+    renderPublishHistory(publishHistoryItems);
+  } catch (error) {
+    console.error(error);
+
+    if (status) {
+      status.textContent = `发布历史读取失败：${error.message}`;
+    }
+
+    if (!options.silent) {
+      alert(`发布历史读取失败：${error.message}`);
+    }
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = originalText;
+    }
+  }
+}
+
 function getBackupTypeInfo(path) {
   if (String(path || "").includes("/works-before-restore-")) {
     return {
@@ -1653,6 +1845,24 @@ async function publishToGitHub() {
     return;
   }
 
+  const publishNote = getPublishNote();
+
+if (publishNote.length < 4) {
+  alert("请填写至少 4 个字符的本次发布说明。");
+
+  const input = $("#publishNoteInput");
+
+  if (input) {
+    input.focus();
+    input.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }
+
+  return;
+}
+
   const validationReport = validateWorksData(getWorksForValidation());
 
 showValidationReport(validationReport, {
@@ -1704,8 +1914,13 @@ if (diffPayload?.report) {
   }
 }
 
+const publishMessage = buildPublishCommitMessage(
+  publishNote,
+  diffPayload?.report
+);
+
 const confirmed = confirm(
-  "最终确认：确定发布到 GitHub 吗？\n\n当前 CMS 中的 works 列表会写入 GitHub 仓库的 data/works.json。"
+  `最终确认：确定发布到 GitHub 吗？\n\n提交信息：\n${publishMessage}\n\n当前 CMS 中的 works 列表会写入 GitHub 仓库的 data/works.json。`
 );
 
 if (!confirmed) return;
@@ -1725,7 +1940,7 @@ if (!confirmed) return;
       },
       body: JSON.stringify({
         works,
-        message: `cms: update works ${new Date().toISOString()}`
+        message: publishMessage
       })
     });
 
@@ -1736,12 +1951,20 @@ if (!confirmed) return;
     }
 
     alert(
-      `发布成功！\n\nBranch: ${result.branch}\nFile: ${result.filePath}\nBackup: ${
-        result.backupPath || "not created"
-      }\nCommit: ${
-        result.commitSha ? result.commitSha.slice(0, 7) : "unknown"
-      }`
-    );
+  `发布成功！\n\nBranch: ${result.branch}\nFile: ${result.filePath}\nBackup: ${
+    result.backupPath || "not created"
+  }\nCommit: ${
+    result.commitSha ? result.commitSha.slice(0, 7) : "unknown"
+  }\n\nRelease: ${publishNote}`
+);
+
+clearPublishNote();
+
+await loadPublishHistory({
+  silent: true
+});
+
+
   } catch (error) {
     console.error(error);
     alert(`发布失败：${error.message}`);
@@ -1839,6 +2062,17 @@ function bindEvents() {
   $("#closeValidationBtn").addEventListener("click", closeValidationBanner);
   $("#diffBtn").addEventListener("click", () => runPublishDiff());
   $("#closeDiffBtn").addEventListener("click", closePublishDiff);
+  $("#publishNoteInput").addEventListener("input", updatePublishNoteCount);
+$("#clearPublishNoteBtn").addEventListener("click", clearPublishNote);
+$("#refreshPublishHistoryBtn").addEventListener("click", () => {
+  loadPublishHistory();
+});
+
+$("#publishHistoryNavBtn").addEventListener("click", () => {
+  if (!publishHistoryItems.length) {
+    loadPublishHistory();
+  }
+});
 
   listFilters.search.addEventListener("input", renderWorkList);
   listFilters.category.addEventListener("change", renderWorkList);
@@ -1859,4 +2093,5 @@ function bindEvents() {
 bindPanels();
 bindEvents();
 loadSavedAdminKey();
+updatePublishNoteCount();
 loadWorks();

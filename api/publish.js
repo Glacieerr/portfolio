@@ -35,6 +35,15 @@ function githubHeaders(token) {
   };
 }
 
+function createPublishMessage(value) {
+  const message = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 180);
+
+  return message || `cms: update works ${new Date().toISOString()}`;
+}
+
 function createBackupTimestamp() {
   return new Date()
     .toISOString()
@@ -110,7 +119,7 @@ export async function POST(request) {
 
     const body = await request.json();
     const works = body.works;
-    const message = body.message || `cms: update works ${new Date().toISOString()}`;
+    const message = createPublishMessage(body.message);
 
     if (!Array.isArray(works)) {
       return json({
