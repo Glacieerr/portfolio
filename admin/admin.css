@@ -1404,3 +1404,124 @@ select:focus {
     margin-top: 10px;
   }
 }
+
+.editor-draft-card {
+  margin-bottom: 18px;
+  padding: 15px 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background:
+    radial-gradient(
+      circle at 8% 0%,
+      rgba(56, 189, 248, 0.1),
+      transparent 32%
+    ),
+    rgba(2, 6, 23, 0.3);
+}
+
+.editor-draft-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.editor-draft-head strong {
+  display: block;
+  color: #e2e8f0;
+  font-size: 0.92rem;
+}
+
+.editor-draft-head p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.editor-draft-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.editor-draft-badge.clean {
+  color: #bbf7d0;
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(22, 101, 52, 0.14);
+}
+
+.editor-draft-badge.dirty {
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.34);
+  background: rgba(113, 63, 18, 0.16);
+}
+
+.editor-draft-badge.saved {
+  color: #bfdbfe;
+  border-color: rgba(96, 165, 250, 0.34);
+  background: rgba(30, 64, 175, 0.16);
+}
+
+.editor-draft-badge.available {
+  color: #ddd6fe;
+  border-color: rgba(167, 139, 250, 0.38);
+  background: rgba(76, 29, 149, 0.16);
+}
+
+.editor-draft-badge.restored {
+  color: #a5f3fc;
+  border-color: rgba(34, 211, 238, 0.34);
+  background: rgba(21, 94, 117, 0.16);
+}
+
+.editor-draft-badge.error {
+  color: #fecdd3;
+  border-color: rgba(248, 113, 113, 0.38);
+  background: rgba(127, 29, 29, 0.18);
+}
+
+.editor-draft-meta {
+  margin-top: 11px;
+  padding: 9px 11px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(2, 6, 23, 0.28);
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.editor-draft-meta[hidden] {
+  display: none !important;
+}
+
+.editor-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 11px;
+}
+
+.editor-draft-actions[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .editor-draft-head {
+    display: block;
+  }
+
+  .editor-draft-badge {
+    margin-top: 10px;
+  }
+}

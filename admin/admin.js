@@ -5,7 +5,16 @@ let backupItems = [];
 let publishHistoryItems = [];
 let lastPublishDiff = null;
 
+let editorDraftSaveTimer = null;
+let availableEditorDraft = null;
+let isApplyingEditorDraft = false;
+
 const CMS_API_BASE = "https://portfolio-flame-seven-33.vercel.app";
+const EDITOR_DRAFT_STORAGE_KEY =
+  "portfolio-cms-editor-draft-v1";
+
+const EDITOR_DRAFT_MAX_AGE_MS =
+  7 * 24 * 60 * 60 * 1000;
 
 const $ = (selector) => document.querySelector(selector);
 function escapeHTML(value) {
@@ -91,6 +100,479 @@ function saveAdminKey() {
 
   localStorage.setItem("portfolioCmsAdminKey", key);
   alert("Admin Key 已保存到当前浏览器。");
+}
+
+function formatEditorDraftDate(value) {
+  if (!value) return "未知时间";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  }).format(date);
+}
+
+function updateEditorDraftUI({
+  mode = "clean",
+  status = "当前没有尚未保存的编辑草稿。",
+  meta = "",
+  showActions = false
+} = {}) {
+  const badge = $("#editorDraftBadge");
+  const statusElement = $("#editorDraftStatus");
+  const metaElement = $("#editorDraftMeta");
+  const actions = $("#editorDraftActions");
+
+  if (!badge || !statusElement || !metaElement || !actions) {
+    return;
+  }
+
+  const badgeLabels = {
+    clean: "已同步",
+    dirty: "未保存",
+    saved: "已自动保存",
+    available: "可恢复",
+    restored: "已恢复",
+    error: "保存失败"
+  };
+
+  badge.className = `editor-draft-badge ${mode}`;
+  badge.textContent = badgeLabels[mode] || mode;
+
+  statusElement.textContent = status;
+
+  if (meta) {
+    metaElement.hidden = false;
+    metaElement.textContent = meta;
+  } else {
+    metaElement.hidden = true;
+    metaElement.textContent = "";
+  }
+
+  actions.hidden = !showActions;
+}
+
+function getEditorFieldElements() {
+  return [
+    ...new Set(
+      Object.values(fields).filter(
+        (element) =>
+          element &&
+          typeof element.addEventListener === "function"
+      )
+    )
+  ];
+}
+
+function serializeEditorFields() {
+  const values = {};
+
+  Object.entries(fields).forEach(([key, element]) => {
+    if (!element) return;
+
+    if (
+      element.type === "checkbox" ||
+      element.type === "radio"
+    ) {
+      values[key] = {
+        kind: "checked",
+        value: Boolean(element.checked)
+      };
+
+      return;
+    }
+
+    if ("value" in element) {
+      values[key] = {
+        kind: "value",
+        value: String(element.value ?? "")
+      };
+    }
+  });
+
+  return values;
+}
+
+function getDraftFieldText(draft, key) {
+  return String(
+    draft?.fields?.[key]?.value ?? ""
+  ).trim();
+}
+
+function getEditorDraftTitle(draft) {
+  return (
+    getDraftFieldText(draft, "titleZh") ||
+    getDraftFieldText(draft, "titleEn") ||
+    getDraftFieldText(draft, "slug") ||
+    getDraftFieldText(draft, "workId") ||
+    "未命名作品"
+  );
+}
+
+function getCurrentWorksFingerprint() {
+  return createSimpleFingerprint(
+    works.map((work) => comparableWork(work))
+  );
+}
+
+function captureEditorDraftSnapshot() {
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    selectedId: selectedId ?? null,
+    worksFingerprint: getCurrentWorksFingerprint(),
+    fields: serializeEditorFields()
+  };
+}
+
+function hasMeaningfulEditorDraft(draft) {
+  if (!draft) return false;
+
+  if (draft.selectedId !== null && draft.selectedId !== undefined) {
+    return true;
+  }
+
+  const meaningfulKeys = [
+    "workId",
+    "slug",
+    "titleZh",
+    "titleEn",
+    "descZh",
+    "descEn",
+    "img",
+    "video",
+    "link",
+    "tags"
+  ];
+
+  return meaningfulKeys.some((key) => {
+    return Boolean(getDraftFieldText(draft, key));
+  });
+}
+
+function readStoredEditorDraft() {
+  try {
+    const raw = localStorage.getItem(
+      EDITOR_DRAFT_STORAGE_KEY
+    );
+
+    if (!raw) return null;
+
+    const draft = JSON.parse(raw);
+
+    if (
+      !draft ||
+      draft.version !== 1 ||
+      !draft.savedAt ||
+      !draft.fields ||
+      typeof draft.fields !== "object"
+    ) {
+      localStorage.removeItem(
+        EDITOR_DRAFT_STORAGE_KEY
+      );
+
+      return null;
+    }
+
+    const savedTime = new Date(draft.savedAt).getTime();
+
+    if (
+      !Number.isFinite(savedTime) ||
+      Date.now() - savedTime > EDITOR_DRAFT_MAX_AGE_MS
+    ) {
+      localStorage.removeItem(
+        EDITOR_DRAFT_STORAGE_KEY
+      );
+
+      return null;
+    }
+
+    return draft;
+  } catch (error) {
+    console.error("读取编辑草稿失败：", error);
+
+    try {
+      localStorage.removeItem(
+        EDITOR_DRAFT_STORAGE_KEY
+      );
+    } catch {
+      // Ignore storage cleanup errors.
+    }
+
+    return null;
+  }
+}
+
+function clearEditorDraftStorage(
+  status = "当前没有尚未保存的编辑草稿。"
+) {
+  clearTimeout(editorDraftSaveTimer);
+  editorDraftSaveTimer = null;
+  availableEditorDraft = null;
+
+  try {
+    localStorage.removeItem(
+      EDITOR_DRAFT_STORAGE_KEY
+    );
+  } catch (error) {
+    console.error("清除编辑草稿失败：", error);
+  }
+
+  updateEditorDraftUI({
+    mode: "clean",
+    status
+  });
+}
+
+function saveEditorDraftNow() {
+  clearTimeout(editorDraftSaveTimer);
+  editorDraftSaveTimer = null;
+
+  if (isApplyingEditorDraft) {
+    return;
+  }
+
+  const draft = captureEditorDraftSnapshot();
+
+  if (
+    !hasMeaningfulEditorDraft(draft) ||
+    !hasUnsavedEditorChanges()
+  ) {
+    clearEditorDraftStorage(
+      "当前表单内容已经保存到本地作品列表。"
+    );
+
+    return;
+  }
+
+  try {
+    localStorage.setItem(
+      EDITOR_DRAFT_STORAGE_KEY,
+      JSON.stringify(draft)
+    );
+
+    availableEditorDraft = draft;
+
+    updateEditorDraftUI({
+      mode: "saved",
+      status: "尚未保存到作品列表的修改，已经自动保存到当前浏览器。",
+      meta:
+        `作品：${getEditorDraftTitle(draft)}` +
+        ` · 保存时间：${formatEditorDraftDate(draft.savedAt)}`,
+      showActions: true
+    });
+  } catch (error) {
+    console.error("自动保存编辑草稿失败：", error);
+
+    updateEditorDraftUI({
+      mode: "error",
+      status: "无法将草稿保存到当前浏览器。",
+      meta: error.message || "localStorage 写入失败。"
+    });
+  }
+}
+
+function scheduleEditorDraftSave() {
+  if (isApplyingEditorDraft) {
+    return;
+  }
+
+  clearTimeout(editorDraftSaveTimer);
+
+  updateEditorDraftUI({
+    mode: "dirty",
+    status: "检测到尚未保存到作品列表的修改，正在等待自动保存。"
+  });
+
+  editorDraftSaveTimer = setTimeout(() => {
+    saveEditorDraftNow();
+  }, 700);
+}
+
+function applyEditorDraftFields(draft) {
+  if (!draft?.fields) {
+    return;
+  }
+
+  isApplyingEditorDraft = true;
+
+  try {
+    Object.entries(draft.fields).forEach(
+      ([key, record]) => {
+        const element = fields[key];
+
+        if (!element || !record) return;
+
+        if (record.kind === "checked") {
+          element.checked = Boolean(record.value);
+        } else if ("value" in element) {
+          element.value = String(record.value ?? "");
+        }
+      }
+    );
+
+    getEditorFieldElements().forEach((element) => {
+      element.dispatchEvent(
+        new Event("input", {
+          bubbles: true
+        })
+      );
+
+      element.dispatchEvent(
+        new Event("change", {
+          bubbles: true
+        })
+      );
+    });
+  } finally {
+    isApplyingEditorDraft = false;
+  }
+}
+
+function restoreEditorDraft() {
+  const draft =
+    availableEditorDraft ||
+    readStoredEditorDraft();
+
+  if (!draft) {
+    alert("当前没有可以恢复的编辑草稿。");
+    clearEditorDraftStorage();
+    return;
+  }
+
+  const currentFingerprint =
+    getCurrentWorksFingerprint();
+
+  const baseChanged =
+    draft.worksFingerprint &&
+    draft.worksFingerprint !== currentFingerprint;
+
+  if (baseChanged) {
+    const continueRestore = confirm(
+      "检测到作品列表自草稿保存后可能已经发生变化。\n\n" +
+      "恢复草稿只会填充编辑表单，不会立即覆盖作品列表或发布到 GitHub。\n\n" +
+      "是否继续恢复？"
+    );
+
+    if (!continueRestore) {
+      return;
+    }
+  }
+
+  selectedId = draft.selectedId ?? null;
+
+  applyEditorDraftFields(draft);
+  renderWorkList();
+
+  availableEditorDraft = draft;
+
+  updateEditorDraftUI({
+    mode: "restored",
+    status:
+      "草稿已经恢复到编辑表单。确认内容后，请点击「保存到本地列表」。",
+    meta:
+      `作品：${getEditorDraftTitle(draft)}` +
+      ` · 原保存时间：${formatEditorDraftDate(draft.savedAt)}`,
+    showActions: true
+  });
+}
+
+function discardEditorDraft() {
+  const draft =
+    availableEditorDraft ||
+    readStoredEditorDraft();
+
+  if (!draft) {
+    clearEditorDraftStorage();
+    return;
+  }
+
+  const confirmed = confirm(
+    `确定放弃这个本地草稿吗？\n\n` +
+    `作品：${getEditorDraftTitle(draft)}\n` +
+    `保存时间：${formatEditorDraftDate(draft.savedAt)}\n\n` +
+    `此操作只删除浏览器里的编辑草稿，不会删除作品列表中的作品。`
+  );
+
+  if (!confirmed) return;
+
+  clearEditorDraftStorage(
+    "本地编辑草稿已放弃。"
+  );
+
+  selectedId = null;
+  resetForm();
+  renderWorkList();
+  updateJsonPreview();
+}
+
+function initializeEditorDraftRecovery() {
+  const draft = readStoredEditorDraft();
+
+  if (!draft) {
+    updateEditorDraftUI({
+      mode: "clean",
+      status: "当前没有尚未保存的编辑草稿。"
+    });
+
+    return;
+  }
+
+  availableEditorDraft = draft;
+
+  updateEditorDraftUI({
+    mode: "available",
+    status:
+      "检测到上一次没有保存到作品列表的编辑草稿。",
+    meta:
+      `作品：${getEditorDraftTitle(draft)}` +
+      ` · 保存时间：${formatEditorDraftDate(draft.savedAt)}`,
+    showActions: true
+  });
+}
+
+function bindEditorDraftEvents() {
+  getEditorFieldElements().forEach((element) => {
+    element.addEventListener(
+      "input",
+      scheduleEditorDraftSave
+    );
+
+    element.addEventListener(
+      "change",
+      scheduleEditorDraftSave
+    );
+  });
+
+  $("#restoreEditorDraftBtn").addEventListener(
+    "click",
+    restoreEditorDraft
+  );
+
+  $("#discardEditorDraftBtn").addEventListener(
+    "click",
+    discardEditorDraft
+  );
+
+  window.addEventListener("beforeunload", (event) => {
+    if (!hasUnsavedEditorChanges()) {
+      return;
+    }
+
+    saveEditorDraftNow();
+
+    event.preventDefault();
+    event.returnValue = "";
+  });
 }
 
 function getCurrentAdminKey() {
@@ -745,6 +1227,10 @@ async function syncRemoteWorks() {
     selectedId = null;
     lastPublishDiff = null;
 
+    clearEditorDraftStorage(
+      "远程作品数据已同步，本地编辑草稿已清除。"
+    );
+
     resetForm();
     renderWorkList();
     updateJsonPreview();
@@ -1269,6 +1755,9 @@ function saveWork(event) {
     renderWorkList();
     selectWork(work.id);
     updateJsonPreview();
+    clearEditorDraftStorage(
+  "作品已保存到本地列表，编辑草稿已清除。"
+);
 
     alert("已保存到本地列表。记得导出 works.json 并替换 data/works.json。");
   } catch (error) {
@@ -1987,6 +2476,10 @@ const firstConfirm = confirm(
       }\n\n请等待 Vercel 自动部署完成，然后刷新前台页面。`
     );
 
+    clearEditorDraftStorage(
+      "远程数据已回滚，本地编辑草稿已清除。"
+    );
+
     await loadWorks();
     await loadBackups();
   } catch (error) {
@@ -2298,6 +2791,16 @@ $("#publishHistoryNavBtn").addEventListener("click", () => {
 
 bindPanels();
 bindEvents();
+bindEditorDraftEvents();
 loadSavedAdminKey();
 updatePublishNoteCount();
-loadWorks();
+
+loadWorks()
+  .then(() => {
+    initializeEditorDraftRecovery();
+  })
+  .catch((error) => {
+    console.error("初始化作品数据失败：", error);
+
+    initializeEditorDraftRecovery();
+  });
