@@ -517,6 +517,32 @@ function comparableWork(work) {
   };
 }
 
+function comparableEditorWork(work) {
+  return {
+    id: createIdFromSlug(work?.id || work?.slug),
+    slug: createIdFromSlug(work?.slug || work?.id),
+    category: normalizeText(work?.category),
+    status: normalizeText(work?.status || "published"),
+    featured: Boolean(work?.featured),
+    order: Number(work?.order ?? 1),
+    mediaType: normalizeText(work?.mediaType || "image"),
+    img: normalizeText(work?.img),
+    video: normalizeText(work?.video),
+    link: normalizeText(work?.link),
+
+    titleZh: normalizeText(work?.title?.zh),
+    titleEn: normalizeText(work?.title?.en),
+
+    descZh: normalizeText(work?.desc?.zh),
+    descEn: normalizeText(work?.desc?.en),
+
+    linkTextZh: normalizeText(work?.linkText?.zh),
+    linkTextEn: normalizeText(work?.linkText?.en),
+
+    tags: normalizeTagsForDiff(work?.tags)
+  };
+}
+
 function formatDiffValue(value) {
   if (Array.isArray(value)) {
     return value.length ? value.join(", ") : "空";
@@ -661,10 +687,10 @@ function hasUnsavedEditorChanges() {
     return true;
   }
 
-  return (
-    JSON.stringify(comparableWork(savedWork)) !==
-    JSON.stringify(comparableWork(draft))
-  );
+  const savedComparable = comparableEditorWork(savedWork);
+  const draftComparable = comparableEditorWork(draft);
+
+  return JSON.stringify(savedComparable) !== JSON.stringify(draftComparable);
 }
 
 function ensureEditorSavedBeforeRemoteAction(actionName = "继续") {
