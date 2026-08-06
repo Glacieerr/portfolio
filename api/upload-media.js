@@ -1,9 +1,53 @@
+function getAllowedOrigin() {
+  return (
+    String(process.env.ALLOWED_ORIGIN || "*").trim() ||
+    "*"
+  );
+}
+
 function corsHeaders() {
   return {
-    "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "*",
+    "Access-Control-Allow-Origin": getAllowedOrigin(),
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, x-admin-key"
+    "Access-Control-Allow-Headers":
+      "Content-Type, x-admin-key",
+    "Vary": "Origin"
   };
+}
+
+function isAllowedRequestOrigin(request) {
+  const allowedOrigin = getAllowedOrigin();
+
+  if (allowedOrigin === "*") {
+    return true;
+  }
+
+  const requestOrigin = String(
+    request.headers.get("origin") || ""
+  ).trim();
+
+  if (!requestOrigin) {
+    return true;
+  }
+
+  return requestOrigin === allowedOrigin;
+}
+
+function rejectDisallowedOrigin(request) {
+  const requestOrigin = String(
+    request.headers.get("origin") || ""
+  ).trim();
+
+  return json(
+    {
+      ok: false,
+      code: "ORIGIN_NOT_ALLOWED",
+      error: "Request origin is not allowed.",
+      requestOrigin: requestOrigin || null,
+      allowedOrigin: getAllowedOrigin()
+    },
+    403
+  );
 }
 
 function json(data, status = 200) {
@@ -73,6 +117,10 @@ export async function POST(request) {
         ok: false,
         error: "Unauthorized"
       }, 401);
+    }
+
+    if (!isAllowedRequestOrigin(request)) {
+      return rejectDisallowedOrigin(request);
     }
 
     const token = requireEnv("GITHUB_TOKEN");
