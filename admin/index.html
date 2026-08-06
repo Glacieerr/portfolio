@@ -154,6 +154,41 @@
     </div>
   </div>
 
+  <div class="editor-draft-card" id="editorDraftCard">
+  <div class="editor-draft-head">
+    <div>
+      <strong>本地编辑草稿</strong>
+      <p id="editorDraftStatus">
+        当前没有尚未保存的编辑草稿。
+      </p>
+    </div>
+
+    <span class="editor-draft-badge clean" id="editorDraftBadge">
+      已同步
+    </span>
+  </div>
+
+  <div class="editor-draft-meta" id="editorDraftMeta" hidden></div>
+
+  <div class="editor-draft-actions" id="editorDraftActions" hidden>
+    <button
+      class="btn small primary"
+      id="restoreEditorDraftBtn"
+      type="button"
+    >
+      恢复草稿
+    </button>
+
+    <button
+      class="btn small ghost"
+      id="discardEditorDraftBtn"
+      type="button"
+    >
+      放弃草稿
+    </button>
+  </div>
+</div>
+
   <div class="layout">
           <section class="card list-card">
             <div class="card-head">
