@@ -31,6 +31,14 @@
           发布历史
         </button>
         <button class="nav-btn" data-panel="jsonPanel" type="button">JSON 预览</button>
+        <button
+          class="nav-btn"
+          id="systemStatusNavBtn"
+          data-panel="systemStatusPanel"
+          type="button"
+        >
+          系统状态
+        </button>
         <button class="nav-btn" data-panel="helpPanel" type="button">使用说明</button>
       </nav>
 
@@ -483,6 +491,52 @@
           <pre class="json-preview" id="jsonPreview"></pre>
         </section>
       </section>
+
+      <section class="panel" id="systemStatusPanel">
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h3>系统状态与环境安全</h3>
+        <p class="card-subtitle">
+          检查 CMS API、GitHub 仓库、目标分支、作品文件和写入安全状态。
+        </p>
+      </div>
+
+      <button
+        class="btn small primary"
+        id="refreshSystemStatusBtn"
+        type="button"
+      >
+        重新检查
+      </button>
+    </div>
+
+    <div
+      class="system-status-summary pending"
+      id="systemStatusSummary"
+    >
+      <strong>尚未检查系统状态</strong>
+      <span>
+        输入并保存 Admin Key 后，点击「重新检查」。
+      </span>
+    </div>
+
+    <div
+      class="system-status-environment"
+      id="systemStatusEnvironment"
+    ></div>
+
+    <div
+      class="system-status-list"
+      id="systemStatusList"
+    ></div>
+
+    <div
+      class="system-status-updated"
+      id="systemStatusUpdatedAt"
+    ></div>
+  </section>
+</section>
 
       <section class="panel" id="helpPanel">
         <section class="card help">

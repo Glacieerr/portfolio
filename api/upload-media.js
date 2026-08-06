@@ -80,6 +80,24 @@ export async function POST(request) {
     const repo = requireEnv("GITHUB_REPO");
     const branch = process.env.GITHUB_BRANCH || "cms-v1";
 
+    const safeBranch =
+      process.env.CMS_SAFE_BRANCH || "cms-v1";
+
+    if (branch !== safeBranch) {
+      return json(
+        {
+          ok: false,
+          code: "UNSAFE_BRANCH",
+          error:
+            `Write blocked: current branch "${branch}" ` +
+            `does not match safe branch "${safeBranch}".`,
+          branch,
+          safeBranch
+        },
+        409
+      );
+    }
+
     const body = await request.json();
 
     const originalName = body.fileName || "";

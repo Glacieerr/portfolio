@@ -4,6 +4,7 @@ let mediaLibraryItems = [];
 let backupItems = [];
 let publishHistoryItems = [];
 let lastPublishDiff = null;
+let cmsSystemStatus = null;
 
 let editorDraftSaveTimer = null;
 let availableEditorDraft = null;
@@ -2002,6 +2003,251 @@ function formatBackupName(name) {
     .replace("Z", " UTC");
 }
 
+function formatSystemStatusDate(value) {
+  if (!value) return "未知时间";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  }).format(date);
+}
+
+function renderCmsSystemStatus(result) {
+  const summary = $("#systemStatusSummary");
+  const environment = $("#systemStatusEnvironment");
+  const list = $("#systemStatusList");
+  const updatedAt = $("#systemStatusUpdatedAt");
+
+  if (!summary || !environment || !list || !updatedAt) {
+    return;
+  }
+
+  const env = result.environment || {};
+  const worksFile = result.worksFile || {};
+  const checks = Array.isArray(result.checks)
+    ? result.checks
+    : [];
+
+  summary.className =
+    `system-status-summary ${
+      result.writeReady ? "ready" : "blocked"
+    }`;
+
+  summary.innerHTML = result.writeReady
+    ? `
+      <strong>CMS 当前可以安全写入</strong>
+      <span>
+        发布、媒体上传和备份回滚所需的核心检查已经通过。
+      </span>
+    `
+    : `
+      <strong>CMS 当前已阻止写入</strong>
+      <span>
+        ${
+          Array.isArray(result.blockingReasons) &&
+          result.blockingReasons.length
+            ? escapeHTML(result.blockingReasons.join("；"))
+            : "存在未通过的安全检查。"
+        }
+      </span>
+    `;
+
+  const chips = [
+    `Repo: ${env.owner || "unknown"}/${env.repo || "unknown"}`,
+    `Branch: ${env.branch || "unknown"}`,
+    `Safe branch: ${env.safeBranch || "unknown"}`,
+    `File: ${env.filePath || "unknown"}`,
+    `Works: ${worksFile.count ?? "unknown"}`,
+    `SHA: ${
+      worksFile.sha
+        ? String(worksFile.sha).slice(0, 7)
+        : "unknown"
+    }`,
+    `Origin: ${env.allowedOrigin || "unknown"}`
+  ];
+
+  environment.innerHTML = chips
+    .map(
+      (item) => `
+        <span class="system-environment-chip">
+          ${escapeHTML(item)}
+        </span>
+      `
+    )
+    .join("");
+
+  const stateLabels = {
+    ok: "正常",
+    warning: "警告",
+    error: "错误"
+  };
+
+  list.innerHTML = checks
+    .map((item) => {
+      const state = [
+        "ok",
+        "warning",
+        "error"
+      ].includes(item.state)
+        ? item.state
+        : "warning";
+
+      return `
+        <article class="system-check-item">
+          <span class="system-check-indicator ${state}">
+            ${escapeHTML(stateLabels[state])}
+          </span>
+
+          <div class="system-check-content">
+            <strong>${escapeHTML(item.label || item.key || "检查项")}</strong>
+            <p>${escapeHTML(item.detail || "")}</p>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+
+  updatedAt.textContent =
+    `最近检查：${formatSystemStatusDate(result.checkedAt)}`;
+}
+
+async function loadCmsSystemStatus(options = {}) {
+  const {
+    silent = false
+  } = options;
+
+  const adminKey = getCurrentAdminKey();
+  const refreshButton = $("#refreshSystemStatusBtn");
+  const summary = $("#systemStatusSummary");
+  const originalText =
+    refreshButton?.textContent || "";
+
+  if (!adminKey) {
+    if (summary) {
+      summary.className =
+        "system-status-summary blocked";
+
+      summary.innerHTML = `
+        <strong>无法检查系统状态</strong>
+        <span>请先输入并保存 Admin Key。</span>
+      `;
+    }
+
+    if (!silent) {
+      alert("请输入并保存 Admin Key。");
+    }
+
+    return null;
+  }
+
+  if (refreshButton) {
+    refreshButton.disabled = true;
+    refreshButton.textContent = "检查中...";
+  }
+
+  if (summary) {
+    summary.className =
+      "system-status-summary pending";
+
+    summary.innerHTML = `
+      <strong>正在检查系统状态</strong>
+      <span>正在连接 CMS API 和 GitHub。</span>
+    `;
+  }
+
+  try {
+    const response = await fetch(
+      `${CMS_API_BASE}/api/cms-status`,
+      {
+        method: "GET",
+        headers: {
+          "x-admin-key": adminKey
+        }
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      throw new Error(
+        result.error || "系统状态检查失败。"
+      );
+    }
+
+    cmsSystemStatus = result;
+    renderCmsSystemStatus(result);
+
+    return result;
+  } catch (error) {
+    console.error(error);
+    cmsSystemStatus = null;
+
+    if (summary) {
+      summary.className =
+        "system-status-summary blocked";
+
+      summary.innerHTML = `
+        <strong>系统状态检查失败</strong>
+        <span>${escapeHTML(error.message)}</span>
+      `;
+    }
+
+    if (!silent) {
+      alert(`系统状态检查失败：${error.message}`);
+    }
+
+    return null;
+  } finally {
+    if (refreshButton) {
+      refreshButton.disabled = false;
+      refreshButton.textContent = originalText;
+    }
+  }
+}
+
+async function ensureCmsWriteReady(
+  actionName = "执行写入操作"
+) {
+  const status = await loadCmsSystemStatus({
+    silent: true
+  });
+
+  if (!status) {
+    alert(
+      `${actionName}已阻止：无法确认 CMS 当前环境是否安全。`
+    );
+
+    return false;
+  }
+
+  if (!status.writeReady) {
+    const reasons =
+      Array.isArray(status.blockingReasons) &&
+      status.blockingReasons.length
+        ? status.blockingReasons.join("\n")
+        : "存在未通过的安全检查。";
+
+    alert(
+      `${actionName}已阻止。\n\n${reasons}\n\n` +
+      `请进入「系统状态」查看详细信息。`
+    );
+
+    return false;
+  }
+
+  return true;
+}
+
 function formatPublishHistoryDate(value) {
   if (!value) return "未知时间";
 
@@ -2423,6 +2669,13 @@ async function restoreBackup(backupPath) {
     return;
   }
 
+  const environmentReady =
+    await ensureCmsWriteReady("备份回滚");
+
+  if (!environmentReady) {
+    return;
+  }
+
   if (!backupPath) {
     alert("备份路径无效。");
     return;
@@ -2507,8 +2760,15 @@ async function publishToGitHub() {
   }
 
   if (!ensureEditorSavedBeforeRemoteAction("发布")) {
-  return;
-}
+    return;
+  }
+
+    const environmentReady =
+    await ensureCmsWriteReady("发布");
+
+  if (!environmentReady) {
+    return;
+  }
 
   const publishNote = getPublishNote();
 
@@ -2749,6 +3009,23 @@ function bindEvents() {
   $("#openMediaLibraryBtn").addEventListener("click", openMediaLibrary);
   $("#refreshMediaBtn").addEventListener("click", loadMediaLibrary);
   $("#refreshBackupsBtn").addEventListener("click", loadBackups);
+
+  $("#refreshSystemStatusBtn").addEventListener(
+    "click",
+    () => {
+      loadCmsSystemStatus();
+    }
+  );
+
+  $("#systemStatusNavBtn").addEventListener(
+    "click",
+    () => {
+      loadCmsSystemStatus({
+        silent: true
+      });
+    }
+  );
+
   $("#closeBackupPreviewBtn").addEventListener("click", closeBackupPreview);
   $("#validateBtn").addEventListener("click", runContentValidation);
   $("#closeValidationBtn").addEventListener("click", closeValidationBanner);
@@ -2759,19 +3036,19 @@ function bindEvents() {
   runPublishDiff();
 });
 
-$("#syncRemoteBtn").addEventListener("click", syncRemoteWorks);
+  $("#syncRemoteBtn").addEventListener("click", syncRemoteWorks);
 
   $("#publishNoteInput").addEventListener("input", updatePublishNoteCount);
-$("#clearPublishNoteBtn").addEventListener("click", clearPublishNote);
-$("#refreshPublishHistoryBtn").addEventListener("click", () => {
-  loadPublishHistory();
-});
-
-$("#publishHistoryNavBtn").addEventListener("click", () => {
-  if (!publishHistoryItems.length) {
+  $("#clearPublishNoteBtn").addEventListener("click", clearPublishNote);
+  $("#refreshPublishHistoryBtn").addEventListener("click", () => {
     loadPublishHistory();
-  }
-});
+  });
+
+  $("#publishHistoryNavBtn").addEventListener("click", () => {
+    if (!publishHistoryItems.length) {
+      loadPublishHistory();
+    }
+  });
 
   listFilters.search.addEventListener("input", renderWorkList);
   listFilters.category.addEventListener("change", renderWorkList);
@@ -2793,6 +3070,13 @@ bindPanels();
 bindEvents();
 bindEditorDraftEvents();
 loadSavedAdminKey();
+
+if (getCurrentAdminKey()) {
+  loadCmsSystemStatus({
+    silent: true
+  });
+}
+
 updatePublishNoteCount();
 
 loadWorks()
