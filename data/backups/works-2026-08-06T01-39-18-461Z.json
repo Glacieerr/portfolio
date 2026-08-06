@@ -14,7 +14,7 @@
       "en": "Test Work"
     },
     "desc": {
-      "zh": "这是 CMS 后台创建的第一条测试作品。",
+      "zh": "这是 CMS 后台创建的第一条测试作品。【SHA冲突验证】",
       "en": "This is the first test work created from the CMS admin."
     },
     "link": "#",

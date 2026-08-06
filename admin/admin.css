@@ -1359,3 +1359,48 @@ select:focus {
     grid-template-columns: 1fr;
   }
 }
+
+.publish-diff-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.publish-diff-banner.is-conflict {
+  border-color: rgba(248, 113, 113, 0.56);
+  background:
+    radial-gradient(
+      circle at 12% 0%,
+      rgba(248, 113, 113, 0.14),
+      transparent 30%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(69, 10, 10, 0.34),
+      rgba(2, 6, 23, 0.62)
+    );
+}
+
+.remote-conflict-message {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(248, 113, 113, 0.34);
+  background: rgba(127, 29, 29, 0.16);
+  color: #fecdd3;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.remote-conflict-message code {
+  color: #fff1f2;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .publish-diff-actions {
+    justify-content: flex-start;
+    margin-top: 10px;
+  }
+}
