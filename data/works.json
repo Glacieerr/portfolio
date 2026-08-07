@@ -58,5 +58,41 @@
     ],
     "createdAt": "2026-06-20",
     "updatedAt": "2026-06-20"
+  },
+  {
+    "id": "silnest",
+    "slug": "silnest",
+    "status": "published",
+    "featured": true,
+    "order": 1,
+    "category": "software",
+    "mediaType": "image",
+    "img": "C:\\Users\\YCY\\Desktop\\local-music-player-single-note-icon-1024.png",
+    "video": "",
+    "title": {
+      "zh": "声藏 · SilNest",
+      "en": "声藏 · SilNest"
+    },
+    "desc": {
+      "zh": "一款面向个人本地音乐收藏的 iOS 与 Android 双端播放器，支持文件导入、本地资料库、后台播放、系统媒体控制与设备端音频转写。应用无需账户，不使用云端音乐服务，音乐与转写内容均在设备本地处理。",
+      "en": "A cross-platform iOS and Android player for personal local music collections, featuring file import, an offline library, background playback, system media controls, and on-device audio transcription. No account or cloud music service is required, and music content remains on the device."
+    },
+    "link": "https://yecanyuan.com/apps/silnest/",
+    "linkText": {
+      "zh": "查看项目",
+      "en": "View Project"
+    },
+    "tags": [
+      "iOS",
+      "Android",
+      "SwiftUI",
+      "Kotlin",
+      "Local Music",
+      "SwiftWhisper",
+      "whisper.cpp",
+      "UI/UX"
+    ],
+    "createdAt": "2026-08-07",
+    "updatedAt": "2026-08-07"
   }
 ]
