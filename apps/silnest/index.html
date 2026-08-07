@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="zh-CN" data-site-lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07101d">
+  <meta name="description" content="声藏 · SilNest 是一款注重隐私的本地音乐播放器，支持用户导入音乐、本地资料库、后台播放与设备端音频转写。">
+  <link rel="canonical" href="https://yecanyuan.com/apps/silnest/">
+  <link rel="stylesheet" href="./app-pages.css">
+  <title>声藏 · SilNest｜本地音乐播放器</title>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">
+  <span class="lang-zh">跳到主要内容</span>
+  <span class="lang-en">Skip to main content</span>
+</a>
+
+<header class="site-header">
+  <div class="site-shell header-inner">
+    <a class="brand" href="./" aria-label="声藏 · SilNest">
+      <span class="brand-mark" aria-hidden="true">
+        <img src="./assets/app-icon.png" alt="">
+      </span>
+      <span class="brand-name">
+        <strong>声藏 · SilNest</strong>
+        <span>
+          <span class="lang-zh">本地音乐，私密聆听</span>
+          <span class="lang-en">Local music, private listening</span>
+        </span>
+      </span>
+    </a>
+
+    <a href="https://yecanyuan.com/">
+      <span class="lang-zh">作品集</span>
+      <span class="lang-en">Portfolio</span>
+    </a>
+
+    <div class="header-actions">
+      <nav class="main-nav" aria-label="Primary navigation">
+        <a href="./" aria-current="page">
+          <span class="lang-zh">应用</span>
+          <span class="lang-en">App</span>
+        </a>
+        <a href="./privacy/" >
+          <span class="lang-zh">隐私政策</span>
+          <span class="lang-en">Privacy</span>
+        </a>
+        <a href="./support/" >
+          <span class="lang-zh">技术支持</span>
+          <span class="lang-en">Support</span>
+        </a>
+      </nav>
+
+      <div class="language-switcher" aria-label="Language">
+        <button type="button" data-language="zh" aria-pressed="true">中</button>
+        <button type="button" data-language="en" aria-pressed="false">EN</button>
+      </div>
+
+      <button
+        class="mobile-nav-toggle"
+        type="button"
+        data-nav-toggle
+        aria-label="Toggle navigation"
+        aria-expanded="false"
+      >
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+  <main id="main-content">
+    <section class="site-shell hero">
+      <div class="hero-copy">
+        <div class="eyebrow">
+          <span class="lang-zh">隐私优先的本地音乐播放器</span>
+          <span class="lang-en">Privacy-first local music player</span>
+        </div>
+
+        <h1>
+          <span class="lang-zh">把音乐留在设备里，<span class="gradient-text">把聆听留给自己。</span></span>
+          <span class="lang-en">Keep music on your device. <span class="gradient-text">Keep listening personal.</span></span>
+        </h1>
+
+        <p class="hero-lead lang-zh block">
+          声藏 · SilNest 面向个人本地音乐收藏而设计。主动导入音乐、整理资料库、
+          在锁屏与控制中心继续播放，并在设备端完成音频转写——不需要账户，不依赖云端音乐服务。
+        </p>
+        <p class="hero-lead lang-en block">
+          SilNest is designed for personal, local music collections. Import your own audio,
+          organize an offline library, continue playback from the Lock Screen and Control Center,
+          and run audio transcription on-device—without an account or cloud music service.
+        </p>
+
+        <div class="hero-actions">
+          <a class="button primary" href="./support/">
+            <span class="lang-zh">获取技术支持</span>
+            <span class="lang-en">Get Support</span>
+          </a>
+          <a class="button ghost" href="./privacy/">
+            <span class="lang-zh">查看隐私政策</span>
+            <span class="lang-en">Read Privacy Policy</span>
+          </a>
+          <span class="button disabled" aria-disabled="true">
+            <span class="lang-zh">App Store 上线准备中</span>
+            <span class="lang-en">Coming to the App Store</span>
+          </span>
+        </div>
+
+        <div class="hero-meta">
+          <span class="meta-chip">iOS 17.0+</span>
+          <span class="meta-chip">
+            <span class="lang-zh">免费使用</span>
+            <span class="lang-en">Free</span>
+          </span>
+          <span class="meta-chip">
+            <span class="lang-zh">无账户</span>
+            <span class="lang-en">No account</span>
+          </span>
+          <span class="meta-chip">
+            <span class="lang-zh">无广告与追踪</span>
+            <span class="lang-en">No ads or tracking</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="hero-art" aria-hidden="true">
+        <div class="orbit one"></div>
+        <div class="orbit two"></div>
+
+        <div class="app-card">
+          <div class="app-icon-large">
+            <img src="./assets/app-icon.png" alt="">
+          </div>
+
+          <div class="now-playing">
+            <strong>
+              <span class="lang-zh">正在播放 · 本地资料库</span>
+              <span class="lang-en">Now Playing · Local Library</span>
+            </strong>
+            <span>
+              <span class="lang-zh">你的音乐不会被上传</span>
+              <span class="lang-en">Your music is not uploaded</span>
+            </span>
+            <div class="progress"></div>
+            <div class="player-controls">
+              <span>‹</span><span>Ⅱ</span><span>›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="site-shell section" aria-labelledby="download-title">
+      <div class="section-heading">
+        <h2 id="download-title">
+          <span class="lang-zh">下载通道</span>
+          <span class="lang-en">Download Channels</span>
+        </h2>
+        <p class="lang-zh block">
+          这里预留未来的安装入口。iOS 版本将通过 App Store，Android APK 通道已先行占位，后续可直接补上真实下载链接。
+        </p>
+        <p class="lang-en block">
+          These are reserved installation channels. The iOS version will be delivered through the App Store,
+          and an Android APK slot is already prepared so a real download link can be added later.
+        </p>
+      </div>
+
+      <div class="download-grid">
+        <article class="download-card">
+          <h3>
+            <span class="lang-zh">iOS · App Store</span>
+            <span class="lang-en">iOS · App Store</span>
+          </h3>
+          <p class="lang-zh block">正式上线后，可在这里放入 App Store 下载按钮或商店跳转链接。</p>
+          <p class="lang-en block">After release, this slot can hold the App Store badge or store URL.</p>
+          <span class="download-status">
+            <span class="lang-zh">即将开放</span>
+            <span class="lang-en">Coming Soon</span>
+          </span>
+          <div class="hero-actions">
+            <span class="button disabled" aria-disabled="true">
+              <span class="lang-zh">App Store 下载</span>
+              <span class="lang-en">Download on the App Store</span>
+            </span>
+          </div>
+        </article>
+
+        <article class="download-card">
+          <h3>
+            <span class="lang-zh">Android · APK 下载</span>
+            <span class="lang-en">Android · APK Download</span>
+          </h3>
+          <p class="lang-zh block">
+            已预留 Android APK 下载通道。后期只需把下面按钮替换为真实 APK 地址即可。
+          </p>
+          <p class="lang-en block">
+            An Android APK channel is now reserved. Later you can simply replace the button below with the real APK URL.
+          </p>
+          <span class="download-status">
+            <span class="lang-zh">预留中</span>
+            <span class="lang-en">Reserved</span>
+          </span>
+          <div class="hero-actions">
+            <span class="button disabled" aria-disabled="true">
+              <span class="lang-zh">Android APK（后续开放）</span>
+              <span class="lang-en">Android APK (Coming Later)</span>
+            </span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="site-shell section" aria-labelledby="features-title">
+      <div class="section-heading">
+        <h2 id="features-title">
+          <span class="lang-zh">围绕本地音乐建立的完整体验</span>
+          <span class="lang-en">A complete experience built around local music</span>
+        </h2>
+        <p class="lang-zh block">
+          功能可能随版本和设备能力有所不同；所有核心音乐内容均以本地处理为设计原则。
+        </p>
+        <p class="lang-en block">
+          Feature availability may vary by version and device. Core music content is designed to remain local.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon">↥</div>
+          <h3><span class="lang-zh">主动导入</span><span class="lang-en">User-directed import</span></h3>
+          <p class="lang-zh block">通过系统文件选择界面导入你明确选择的音频文件。</p>
+          <p class="lang-en block">Import audio files you explicitly choose through the system file picker.</p>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon">♫</div>
+          <h3><span class="lang-zh">本地资料库</span><span class="lang-en">Local library</span></h3>
+          <p class="lang-zh block">在设备上整理歌曲、歌手、专辑、封面与歌词信息。</p>
+          <p class="lang-en block">Organize songs, artists, albums, artwork, and lyrics on your device.</p>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon">⌁</div>
+          <h3><span class="lang-zh">后台播放</span><span class="lang-en">Background playback</span></h3>
+          <p class="lang-zh block">通过 iOS 系统媒体能力在锁屏和控制中心继续播放与控制。</p>
+          <p class="lang-en block">Continue and control playback through iOS Lock Screen and Control Center media features.</p>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon">文</div>
+          <h3><span class="lang-zh">设备端转写</span><span class="lang-en">On-device transcription</span></h3>
+          <p class="lang-zh block">使用 SwiftWhisper 与 whisper.cpp 在设备本地处理导入音频。</p>
+          <p class="lang-en block">Process imported audio locally with SwiftWhisper and whisper.cpp.</p>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon">◫</div>
+          <h3><span class="lang-zh">小组件与系统控制</span><span class="lang-en">Widgets and system controls</span></h3>
+          <p class="lang-zh block">从兼容的小组件和系统播放界面快速查看或控制音乐。</p>
+          <p class="lang-en block">Quickly view or control music from compatible widgets and system playback surfaces.</p>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon">◎</div>
+          <h3><span class="lang-zh">离线与私密</span><span class="lang-en">Offline and private</span></h3>
+          <p class="lang-zh block">无账户、无广告、无分析 SDK、无跨应用追踪。</p>
+          <p class="lang-en block">No account, ads, analytics SDKs, or cross-app tracking.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="site-shell section">
+      <div class="privacy-banner">
+        <div>
+          <h2>
+            <span class="lang-zh">音乐属于你，处理也留在你的设备上。</span>
+            <span class="lang-en">Your music is yours—and processing stays on your device.</span>
+          </h2>
+          <p class="lang-zh block">
+            声藏不使用自有服务器，不上传导入的音乐或本地转写内容，也不使用广告标识符或跨应用追踪。
+          </p>
+          <p class="lang-en block">
+            SilNest does not use developer-operated servers, upload imported music or local transcription content,
+            use advertising identifiers, or perform cross-app tracking.
+          </p>
+        </div>
+        <div class="privacy-symbol" aria-hidden="true">⌾</div>
+      </div>
+    </section>
+
+    <section class="site-shell section" aria-labelledby="help-title">
+      <div class="section-heading">
+        <h2 id="help-title">
+          <span class="lang-zh">需要帮助或有新的想法？</span>
+          <span class="lang-en">Need help or have an idea?</span>
+        </h2>
+        <p class="lang-zh block">技术支持页面提供常见问题、问题报告和功能建议入口。</p>
+        <p class="lang-en block">The support page includes common troubleshooting, bug reporting, and feature request options.</p>
+      </div>
+
+      <div class="hero-actions">
+        <a class="button primary" href="./support/">
+          <span class="lang-zh">打开技术支持</span>
+          <span class="lang-en">Open Support</span>
+        </a>
+        <a class="button ghost" href="mailto:canyuanye@gmail.com?subject=%5BSilNest%20Support%5D">
+          <span class="lang-zh">发送支持邮件</span>
+          <span class="lang-en">Email Support</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+  <div class="site-shell footer-inner">
+    <p>
+      © 2026 Canyuan Ye · 声藏 · SilNest<br>
+      <span class="lang-zh">面向 iOS 17.0 及更高版本。</span>
+      <span class="lang-en">Designed for iOS 17.0 and later.</span>
+    </p>
+
+    <a href="https://yecanyuan.com/">
+      <span class="lang-zh">返回作品集</span>
+      <span class="lang-en">Portfolio Home</span>
+    </a>
+
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="./">
+        <span class="lang-zh">应用介绍</span>
+        <span class="lang-en">App</span>
+      </a>
+      <a href="./privacy/">
+        <span class="lang-zh">隐私政策</span>
+        <span class="lang-en">Privacy Policy</span>
+      </a>
+      <a href="./support/">
+        <span class="lang-zh">技术支持</span>
+        <span class="lang-en">Support</span>
+      </a>
+      <a href="mailto:canyuanye@gmail.com">canyuanye@gmail.com</a>
+    </nav>
+  </div>
+</footer>
+  <script src="./app-pages.js"></script>
+</body>
+</html>
