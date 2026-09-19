@@ -10,7 +10,7 @@ let editorDraftSaveTimer = null;
 let availableEditorDraft = null;
 let isApplyingEditorDraft = false;
 
-const CMS_API_BASE = "https://portfolio-flame-seven-33.vercel.app";
+const CMS_API_BASE = window.location.origin;
 const EDITOR_DRAFT_STORAGE_KEY =
   "portfolio-cms-editor-draft-v1";
 
