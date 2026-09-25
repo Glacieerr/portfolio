@@ -1804,6 +1804,75 @@ async function copyJson() {
   }
 }
 
+function uploadFileWithProgress(
+  presignedUrl,
+  file,
+  onProgress = () => {}
+) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.open("PUT", presignedUrl, true);
+    xhr.setRequestHeader(
+      "Content-Type",
+      file.type || "application/octet-stream"
+    );
+
+    xhr.upload.addEventListener("progress", (event) => {
+      if (!event.lengthComputable) return;
+
+      const percentage = Math.round(
+        (event.loaded / event.total) * 100
+      );
+
+      onProgress({
+        loaded: event.loaded,
+        total: event.total,
+        percentage
+      });
+    });
+
+    xhr.addEventListener("load", () => {
+      let result = {};
+
+      try {
+        result = xhr.responseText
+          ? JSON.parse(xhr.responseText)
+          : {};
+      } catch {
+        result = {};
+      }
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(result);
+        return;
+      }
+
+      reject(
+        new Error(
+          result?.error?.message ||
+          result?.error ||
+          `Blob upload failed with HTTP ${xhr.status}.`
+        )
+      );
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(
+        new Error(
+          "Blob upload failed because of a network error."
+        )
+      );
+    });
+
+    xhr.addEventListener("abort", () => {
+      reject(new Error("Blob upload was cancelled."));
+    });
+
+    xhr.send(file);
+  });
+}
+
 async function uploadCoverImage() {
   const adminKey = getCurrentAdminKey();
 
@@ -1820,17 +1889,22 @@ async function uploadCoverImage() {
     return;
   }
 
-  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif"
+  ];
 
   if (!allowedTypes.includes(file.type)) {
     alert("只支持 JPG、PNG、WEBP、GIF 图片。");
     return;
   }
 
-  const maxBytes = 4 * 1024 * 1024;
+  const maxBytes = 20 * 1024 * 1024;
 
   if (file.size > maxBytes) {
-    alert("图片太大，请控制在 4MB 以内。");
+    alert("图片太大，请控制在 20MB 以内。");
     return;
   }
 
@@ -1838,40 +1912,67 @@ async function uploadCoverImage() {
   const originalText = uploadBtn.textContent;
 
   uploadBtn.disabled = true;
-  uploadBtn.textContent = "上传中...";
+  uploadBtn.textContent = "准备上传...";
 
   try {
-    const contentBase64 = await fileToBase64(file);
     const slug = getUploadSlug();
 
-    const response = await fetch(`${CMS_API_BASE}/api/upload-media`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-key": adminKey
-      },
-      body: JSON.stringify({
-        fileName: file.name,
-        mimeType: file.type,
-        contentBase64,
-        slug
-      })
-    });
+    const authorizeResponse = await fetch(
+      `${CMS_API_BASE}/api/create-blob-upload-url`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-key": adminKey
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+          slug,
+          kind: "cover"
+        })
+      }
+    );
 
-    const result = await response.json();
+    const authorization =
+      await authorizeResponse.json();
 
-    if (!response.ok || !result.ok) {
-      throw new Error(result.error || "上传失败");
+    if (!authorizeResponse.ok || !authorization.ok) {
+      throw new Error(
+        authorization.error ||
+        "无法创建 Blob 上传授权。"
+      );
     }
 
-    fields.img.value = result.path;
+    const blob = await uploadFileWithProgress(
+      authorization.presignedUrl,
+      file,
+      ({ percentage }) => {
+        uploadBtn.textContent =
+          `上传中 ${percentage}%`;
+      }
+    );
+
+    if (!blob.url) {
+      throw new Error(
+        "Blob 上传完成，但响应中没有返回公开 URL。"
+      );
+    }
+
+    fields.img.value = blob.url;
     fields.mediaType.value = "image";
     updateMediaPreview();
 
+    await loadMediaLibrary({
+      silent: true
+    });
+
     alert(
-      `封面上传成功！\n\nPath: ${result.path}\nCommit: ${
-        result.commitSha ? result.commitSha.slice(0, 7) : "unknown"
-      }\n\n请点击「保存到本地列表」，然后再点击「发布到 GitHub」保存作品数据。`
+      `封面已上传到 Vercel Blob！\n\n` +
+      `Path: ${blob.pathname || authorization.pathname}\n` +
+      `URL: ${blob.url}\n\n` +
+      `请点击「保存到本地列表」，然后再「发布到 GitHub」保存作品数据。`
     );
   } catch (error) {
     console.error(error);
@@ -1882,63 +1983,296 @@ async function uploadCoverImage() {
   }
 }
 
+
 function formatFileSize(bytes) {
   const size = Number(bytes || 0);
 
   if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
 
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function renderMediaLibrary(items = mediaLibraryItems) {
+function getMediaItemPreviewUrl(item) {
+  return (
+    item?.url ||
+    item?.downloadUrl ||
+    ""
+  );
+}
+
+function getMediaItemValue(item) {
+  if (item?.source === "blob") {
+    return String(item.url || "").trim();
+  }
+
+  return String(item?.path || "").trim();
+}
+
+function getMediaSourceLabel(item) {
+  return item?.source === "blob"
+    ? "Vercel Blob"
+    : "GitHub Legacy";
+}
+
+function renderMediaLibrary(
+  items = mediaLibraryItems,
+  summary = null
+) {
   const grid = $("#mediaLibraryGrid");
   const status = $("#mediaLibraryStatus");
 
   if (!grid || !status) return;
 
   if (!items.length) {
-    status.textContent = "媒体库为空。上传封面后，图片会出现在这里。";
+    status.textContent =
+      "媒体库为空。上传封面后，图片会出现在这里。";
     grid.innerHTML = "";
     return;
   }
 
-  status.textContent = `已读取 ${items.length} 张图片。点击「设为封面」即可填入当前作品。`;
+  const blobCount = summary?.blobCount ??
+    items.filter((item) => item.source === "blob").length;
 
-  grid.innerHTML = items.map((item) => `
-    <article class="media-item">
-      <div class="media-item-preview">
-        <img src="${escapeHTML(item.downloadUrl || "")}" alt="${escapeHTML(item.name)}" loading="lazy" />
-      </div>
+  const legacyCount = summary?.legacyCount ??
+    items.filter((item) => item.source !== "blob").length;
 
-      <div class="media-item-body">
-        <span class="media-item-name">${escapeHTML(item.name)}</span>
-        <span class="media-item-path">${escapeHTML(item.path)} · ${escapeHTML(formatFileSize(item.size))}</span>
+  status.textContent =
+    `已读取 ${items.length} 张图片：` +
+    `Vercel Blob ${blobCount} 张，` +
+    `GitHub Legacy ${legacyCount} 张。`;
 
-        <div class="media-item-actions">
-          <button class="btn small ghost" type="button" data-media-path="${escapeHTML(item.path)}">
-            设为封面
-          </button>
+  grid.innerHTML = items.map((item) => {
+    const previewUrl = getMediaItemPreviewUrl(item);
+    const mediaValue = getMediaItemValue(item);
+    const sourceLabel = getMediaSourceLabel(item);
+    const canDelete = item.source === "blob";
+
+    return `
+      <article class="media-item">
+        <div class="media-item-preview">
+          <img
+            src="${escapeHTML(previewUrl)}"
+            alt="${escapeHTML(item.name || "Media")}"
+            loading="lazy"
+          />
         </div>
-      </div>
-    </article>
-  `).join("");
 
-  grid.querySelectorAll("[data-media-path]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const path = button.dataset.mediaPath;
+        <div class="media-item-body">
+          <span class="media-item-name">
+            ${escapeHTML(item.name || "Untitled media")}
+          </span>
 
-      fields.img.value = path;
-      fields.mediaType.value = "image";
-      updateMediaPreview();
-      activatePanel("worksPanel");
+          <span class="media-item-path">
+            ${escapeHTML(sourceLabel)}
+            · ${escapeHTML(item.path || item.pathname || "")}
+            · ${escapeHTML(formatFileSize(item.size))}
+          </span>
 
-      alert(`已设置当前封面：\n${path}\n\n记得点击「保存到本地列表」，然后再「发布到 GitHub」。`);
+          <div class="media-item-actions">
+            <button
+              class="btn small ghost"
+              type="button"
+              data-media-value="${escapeHTML(mediaValue)}"
+            >
+              设为封面
+            </button>
+
+            ${
+              canDelete
+                ? `
+                  <button
+                    class="btn small danger"
+                    type="button"
+                    data-delete-blob-path="${escapeHTML(item.pathname || item.path || "")}"
+                  >
+                    删除 Blob
+                  </button>
+                `
+                : ""
+            }
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  grid
+    .querySelectorAll("[data-media-value]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const value = button.dataset.mediaValue;
+
+        fields.img.value = value;
+        fields.mediaType.value = "image";
+        updateMediaPreview();
+        activatePanel("worksPanel");
+
+        alert(
+          `已设置当前封面：\n${value}\n\n` +
+          `记得点击「保存到本地列表」，然后再「发布到 GitHub」。`
+        );
+      });
     });
-  });
+
+  grid
+    .querySelectorAll("[data-delete-blob-path]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        deleteBlobMedia(
+          button.dataset.deleteBlobPath
+        );
+      });
+    });
 }
 
-async function loadMediaLibrary() {
+async function fetchMediaApi(url, adminKey) {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "x-admin-key": adminKey
+    }
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.ok) {
+    throw new Error(
+      result.error ||
+      `媒体 API 请求失败：HTTP ${response.status}`
+    );
+  }
+
+  return result;
+}
+
+async function loadMediaLibrary(options = {}) {
+  const {
+    silent = false
+  } = options;
+
+  const adminKey = getCurrentAdminKey();
+
+  if (!adminKey) {
+    if (!silent) {
+      alert("请输入 Admin Key。");
+    }
+    return;
+  }
+
+  const refreshBtn = $("#refreshMediaBtn");
+  const status = $("#mediaLibraryStatus");
+  const originalText = refreshBtn?.textContent || "";
+
+  if (refreshBtn) {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = "读取中...";
+  }
+
+  if (status) {
+    status.textContent =
+      "正在读取 Vercel Blob 与 GitHub Legacy 媒体...";
+  }
+
+  try {
+    const [blobResult, legacyResult] =
+      await Promise.allSettled([
+        fetchMediaApi(
+          `${CMS_API_BASE}/api/list-blob-media`,
+          adminKey
+        ),
+        fetchMediaApi(
+          `${CMS_API_BASE}/api/list-media`,
+          adminKey
+        )
+      ]);
+
+    const blobItems =
+      blobResult.status === "fulfilled"
+        ? (
+            Array.isArray(blobResult.value.items)
+              ? blobResult.value.items
+              : []
+          )
+        : [];
+
+    const legacyItems =
+      legacyResult.status === "fulfilled"
+        ? (
+            Array.isArray(legacyResult.value.items)
+              ? legacyResult.value.items.map(
+                  (item) => ({
+                    ...item,
+                    source: "github"
+                  })
+                )
+              : []
+          )
+        : [];
+
+    if (
+      blobResult.status === "rejected" &&
+      legacyResult.status === "rejected"
+    ) {
+      throw new Error(
+        `Blob: ${blobResult.reason?.message || "failed"}；` +
+        `GitHub: ${legacyResult.reason?.message || "failed"}`
+      );
+    }
+
+    mediaLibraryItems = [
+      ...blobItems,
+      ...legacyItems
+    ];
+
+    renderMediaLibrary(
+      mediaLibraryItems,
+      {
+        blobCount: blobItems.length,
+        legacyCount: legacyItems.length
+      }
+    );
+
+    const warnings = [];
+
+    if (blobResult.status === "rejected") {
+      warnings.push(
+        `Vercel Blob 读取失败：${blobResult.reason?.message || "unknown"}`
+      );
+    }
+
+    if (legacyResult.status === "rejected") {
+      warnings.push(
+        `GitHub Legacy 读取失败：${legacyResult.reason?.message || "unknown"}`
+      );
+    }
+
+    if (warnings.length && status) {
+      status.textContent +=
+        ` 部分来源不可用：${warnings.join("；")}`;
+    }
+  } catch (error) {
+    console.error(error);
+
+    if (status) {
+      status.textContent =
+        `媒体库读取失败：${error.message}`;
+    }
+
+    if (!silent) {
+      alert(`媒体库读取失败：${error.message}`);
+    }
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = originalText;
+    }
+  }
+}
+
+async function deleteBlobMedia(pathname) {
   const adminKey = getCurrentAdminKey();
 
   if (!adminKey) {
@@ -1946,44 +2280,70 @@ async function loadMediaLibrary() {
     return;
   }
 
-  const refreshBtn = $("#refreshMediaBtn");
-  const status = $("#mediaLibraryStatus");
-  const originalText = refreshBtn.textContent;
-
-  refreshBtn.disabled = true;
-  refreshBtn.textContent = "读取中...";
-
-  if (status) {
-    status.textContent = "正在从 GitHub 读取 images/works/ ...";
+  if (!pathname) {
+    alert("Blob 路径无效。");
+    return;
   }
 
+  const item = mediaLibraryItems.find(
+    (media) =>
+      media.source === "blob" &&
+      (media.pathname || media.path) === pathname
+  );
+
+  const confirmed = confirm(
+    `确定删除这个 Blob 文件吗？\n\n` +
+    `${pathname}\n\n` +
+    `如果这个文件的 URL 已经写入 works.json，删除后前台图片会失效。` +
+    `请确认它当前没有被正式作品引用。`
+  );
+
+  if (!confirmed) return;
+
   try {
-    const response = await fetch(`${CMS_API_BASE}/api/list-media`, {
-      method: "GET",
-      headers: {
-        "x-admin-key": adminKey
+    const response = await fetch(
+      `${CMS_API_BASE}/api/delete-blob-media`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-key": adminKey
+        },
+        body: JSON.stringify({
+          pathname
+        })
       }
-    });
+    );
 
     const result = await response.json();
 
     if (!response.ok || !result.ok) {
-      throw new Error(result.error || "读取媒体库失败");
+      throw new Error(
+        result.error || "删除 Blob 失败。"
+      );
     }
 
-    mediaLibraryItems = Array.isArray(result.items) ? result.items : [];
-    renderMediaLibrary(mediaLibraryItems);
+    const currentValue =
+      String(fields.img.value || "").trim();
+
+    if (
+      item?.url &&
+      currentValue === String(item.url).trim()
+    ) {
+      alert(
+        "Blob 已删除。当前编辑表单仍然引用这个 URL，" +
+        "请更换封面后再保存作品。"
+      );
+    } else {
+      alert(`Blob 已删除：\n${pathname}`);
+    }
+
+    await loadMediaLibrary({
+      silent: true
+    });
   } catch (error) {
     console.error(error);
-
-    if (status) {
-      status.textContent = `媒体库读取失败：${error.message}`;
-    }
-
-    alert(`媒体库读取失败：${error.message}`);
-  } finally {
-    refreshBtn.disabled = false;
-    refreshBtn.textContent = originalText;
+    alert(`删除 Blob 失败：${error.message}`);
   }
 }
 
@@ -1994,6 +2354,7 @@ function openMediaLibrary() {
     loadMediaLibrary();
   }
 }
+
 
 function formatBackupName(name) {
   return String(name || "")
@@ -2047,7 +2408,7 @@ function renderCmsSystemStatus(result) {
     ? `
       <strong>CMS 当前可以安全写入</strong>
       <span>
-        发布、媒体上传和备份回滚所需的核心检查已经通过。
+        GitHub 发布与备份回滚所需的核心检查已经通过。
       </span>
     `
     : `
@@ -2073,7 +2434,14 @@ function renderCmsSystemStatus(result) {
         ? String(worksFile.sha).slice(0, 7)
         : "unknown"
     }`,
-    `Origin: ${env.allowedOrigin || "unknown"}`
+    `Origin: ${env.allowedOrigin || "unknown"}`,
+    `Blob: ${
+      result.blobStore?.ready
+        ? "ready"
+        : result.blobStore?.configured
+          ? "warning"
+          : "not configured"
+    }`
   ];
 
   environment.innerHTML = chips

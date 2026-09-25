@@ -1,3 +1,5 @@
+import { list } from "@vercel/blob";
+
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "*",
@@ -191,6 +193,34 @@ export async function GET(request) {
     const originRestricted =
       allowedOrigin !== "*";
 
+    const blobConfigured = Boolean(
+      process.env.BLOB_STORE_ID
+    );
+
+    let blobReady = false;
+    let blobSampleCount = 0;
+    let blobError = "";
+
+    if (blobConfigured) {
+      try {
+        const blobResult = await list({
+          limit: 1
+        });
+
+        blobReady = true;
+        blobSampleCount = Array.isArray(blobResult.blobs)
+          ? blobResult.blobs.length
+          : 0;
+      } catch (error) {
+        blobError =
+          error?.message ||
+          "Unable to access Vercel Blob.";
+      }
+    } else {
+      blobError =
+        "BLOB_STORE_ID is not configured.";
+    }
+
     const writeReady =
       repositoryReady &&
       branchReady &&
@@ -286,12 +316,22 @@ export async function GET(request) {
       }),
 
       createCheck({
+        key: "blob-store",
+        label: "Vercel Blob",
+        state: blobReady ? "ok" : "warning",
+        detail: blobReady
+          ? "portfolio-media 已连接，可以读取 Blob Store。"
+          : `Blob Store 尚未就绪：${blobError}`,
+        blocking: false
+      }),
+
+      createCheck({
         key: "write-ready",
-        label: "CMS 写入状态",
+        label: "GitHub 写入状态",
         state: writeReady ? "ok" : "error",
         detail: writeReady
-          ? "当前环境允许发布、媒体上传和备份回滚。"
-          : "当前环境不满足安全写入条件。",
+          ? "当前环境允许 GitHub 发布与备份回滚。"
+          : "当前环境不满足 GitHub 安全写入条件。",
         blocking: !writeReady
       })
     ];
@@ -311,6 +351,12 @@ export async function GET(request) {
         safeBranch,
         filePath,
         allowedOrigin
+      },
+      blobStore: {
+        configured: blobConfigured,
+        ready: blobReady,
+        sampleCount: blobSampleCount,
+        error: blobReady ? null : blobError
       },
       repository: {
         private: Boolean(repoResult.data?.private),
