@@ -1918,7 +1918,7 @@ async function uploadCoverImage() {
     const slug = getUploadSlug();
 
     const authorizeResponse = await fetch(
-      `${CMS_API_BASE}/api/create-blob-upload-url`,
+      `${CMS_API_BASE}/api/blob-media?action=upload-url`,
       {
         method: "POST",
         headers: {
@@ -2180,7 +2180,7 @@ async function loadMediaLibrary(options = {}) {
     const [blobResult, legacyResult] =
       await Promise.allSettled([
         fetchMediaApi(
-          `${CMS_API_BASE}/api/list-blob-media`,
+          `${CMS_API_BASE}/api/blob-media?action=list`,
           adminKey
         ),
         fetchMediaApi(
@@ -2302,7 +2302,7 @@ async function deleteBlobMedia(pathname) {
 
   try {
     const response = await fetch(
-      `${CMS_API_BASE}/api/delete-blob-media`,
+      `${CMS_API_BASE}/api/blob-media?action=delete`,
       {
         method: "POST",
         headers: {
