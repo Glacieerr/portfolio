@@ -38,7 +38,7 @@
     "order": 1,
     "category": "software",
     "mediaType": "image",
-    "img": "images/works/cms-feature-test.png",
+    "img": "https://2xqxbtbbynx2f0kh.public.blob.vercel-storage.com/works/cms-feature-test/cover/cms-feature-test.png",
     "video": "",
     "title": {
       "zh": "CMS 核心项目测试",
@@ -67,7 +67,7 @@
     "order": 1,
     "category": "software",
     "mediaType": "image",
-    "img": "C:\\Users\\YCY\\Desktop\\local-music-player-single-note-icon-1024.png",
+    "img": "https://2xqxbtbbynx2f0kh.public.blob.vercel-storage.com/works/silnest/cover/app-icon.png",
     "video": "",
     "title": {
       "zh": "声藏 · SilNest",
