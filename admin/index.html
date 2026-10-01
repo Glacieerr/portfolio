@@ -43,8 +43,8 @@
       </nav>
 
       <div class="sidebar-footer">
-        <p>Phase 3 · GitHub Publish CMS</p>
-        <p>当前版本：后台发布到 GitHub</p>
+        <p>Phase 16E · Blob Media CMS</p>
+        <p>Git-backed content · Vercel Blob media</p>
       </div>
     </aside>
 
@@ -321,17 +321,17 @@
 
               <label>
                 封面路径 / Cover Path
-                <input id="img" type="text" placeholder="images/works/silnest.webp" />
+                <input id="img" type="text" placeholder="https://...public.blob.vercel-storage.com/works/silnest/cover/..." />
               </label>
 
               <div class="media-upload-controls">
                 <input id="coverFileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
-                <button class="btn ghost small" id="uploadCoverBtn" type="button">上传封面到 GitHub</button>
+                <button class="btn ghost small" id="uploadCoverBtn" type="button">上传封面到 Blob</button>
                 <button class="btn ghost small" id="openMediaLibraryBtn" type="button">从媒体库选择</button>
               </div>
 
               <p class="field-hint">
-                支持 JPG、PNG、WEBP、GIF。建议图片小于 4MB。上传成功后会自动填入封面路径。
+                支持 JPG、PNG、WEBP、GIF，最大 20MB。文件会直接上传到 Vercel Blob，并自动填入公开 URL。
               </p>
 
               <label>
@@ -385,18 +385,145 @@
       </section>
 
       <section class="panel" id="mediaPanel">
-  <section class="card">
+  <div class="media-manager-layout">
+    <section class="card media-manager-card">
+      <div class="card-head">
+        <div>
+          <h3>上传媒体</h3>
+          <p class="card-subtitle">
+            图片、视频和 Android APK 直接上传到 Vercel Blob，不经过 GitHub 仓库。
+          </p>
+        </div>
+      </div>
+
+      <div class="media-manager-form">
+        <div class="grid two">
+          <label>
+            资源类型
+            <select id="mediaUploadKind">
+              <option value="cover">作品封面 / Cover</option>
+              <option value="screenshot">作品截图 / Screenshot</option>
+              <option value="video">作品视频 / Video</option>
+              <option value="android-apk">SilNest Android APK</option>
+            </select>
+          </label>
+
+          <label id="mediaUploadSlugGroup">
+            作品 Slug
+            <input id="mediaUploadSlug" type="text" placeholder="silnest" />
+          </label>
+        </div>
+
+        <div class="grid two android-release-upload-fields" id="androidUploadFields" hidden>
+          <label>
+            Android Version
+            <input id="androidUploadVersion" type="text" placeholder="1.0.0" />
+          </label>
+          <label>
+            Version Code
+            <input id="androidUploadVersionCode" type="text" placeholder="1" />
+          </label>
+        </div>
+
+        <input id="mediaFileInput" type="file" />
+
+        <p class="field-hint" id="mediaUploadHint">
+          Cover：JPG / PNG / WEBP / GIF，最大 20MB。
+        </p>
+
+        <div class="media-upload-progress" id="mediaUploadProgress" hidden>
+          <div class="media-upload-progress-head">
+            <span id="mediaUploadProgressLabel">等待上传</span>
+            <strong id="mediaUploadProgressPercent">0%</strong>
+          </div>
+          <progress id="mediaUploadProgressBar" value="0" max="100"></progress>
+          <span id="mediaUploadProgressBytes"></span>
+        </div>
+
+        <div class="media-manager-actions">
+          <button class="btn primary" id="uploadMediaBtn" type="button">上传到 Blob</button>
+          <button class="btn ghost" id="cancelMediaUploadBtn" type="button" hidden>取消上传</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card media-manager-card">
+      <div class="card-head">
+        <div>
+          <h3>SilNest Android 发布</h3>
+          <p class="card-subtitle">
+            APK 上传后先选择为发布候选，再写入 data/apps/silnest.json。正式站点只读取已发布的元数据。
+          </p>
+        </div>
+        <button class="btn small ghost" id="refreshAndroidReleaseBtn" type="button">刷新</button>
+      </div>
+
+      <div class="android-release-status" id="androidReleaseStatus">
+        输入 Admin Key 后读取当前 Android 发布状态。
+      </div>
+
+      <div class="grid two">
+        <label>
+          Version
+          <input id="androidReleaseVersion" type="text" placeholder="1.0.0" />
+        </label>
+        <label>
+          Version Code
+          <input id="androidReleaseVersionCode" type="text" placeholder="1" />
+        </label>
+      </div>
+
+      <label>
+        APK URL
+        <input id="androidReleaseUrl" type="text" readonly placeholder="从媒体库选择 APK" />
+      </label>
+
+      <label>
+        Blob Pathname
+        <input id="androidReleasePathname" type="text" readonly placeholder="apps/silnest/android/..." />
+      </label>
+
+      <div class="android-release-meta" id="androidReleaseMeta"></div>
+
+      <div class="media-manager-actions">
+        <button class="btn primary" id="publishAndroidReleaseBtn" type="button">发布 Android 下载信息</button>
+        <button class="btn danger" id="disableAndroidReleaseBtn" type="button">暂停 Android 下载</button>
+      </div>
+    </section>
+  </div>
+
+  <section class="card media-library-card">
     <div class="card-head">
       <div>
-        <h3>媒体库</h3>
-        <p class="card-subtitle">读取 GitHub 仓库中的 images/works/ 图片，可选择为当前作品封面。</p>
+        <h3>Media Library 2.0</h3>
+        <p class="card-subtitle">
+          Vercel Blob 为主媒体源；GitHub Legacy 暂时保留用于迁移兼容。
+        </p>
       </div>
 
       <button class="btn small primary" id="refreshMediaBtn" type="button">刷新媒体库</button>
     </div>
 
+    <div class="media-library-toolbar">
+      <input id="mediaSearchInput" type="search" placeholder="搜索文件名、Slug、Pathname..." />
+      <select id="mediaTypeFilter">
+        <option value="all">全部类型</option>
+        <option value="image">图片</option>
+        <option value="video">视频</option>
+        <option value="apk">APK</option>
+      </select>
+      <select id="mediaSourceFilter">
+        <option value="all">全部来源</option>
+        <option value="blob">Vercel Blob</option>
+        <option value="github">GitHub Legacy</option>
+      </select>
+      <select id="mediaProjectFilter">
+        <option value="all">全部项目</option>
+      </select>
+    </div>
+
     <div class="media-library-status" id="mediaLibraryStatus">
-      输入 Admin Key 后，点击「刷新媒体库」读取已上传图片。
+      输入 Admin Key 后，点击「刷新媒体库」。
     </div>
 
     <div class="media-library-grid" id="mediaLibraryGrid"></div>

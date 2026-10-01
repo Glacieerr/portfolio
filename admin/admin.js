@@ -5,6 +5,11 @@ let backupItems = [];
 let publishHistoryItems = [];
 let lastPublishDiff = null;
 let cmsSystemStatus = null;
+let mediaLibrarySummary = null;
+let activeMediaUploadXhr = null;
+let currentSilNestRelease = null;
+let currentSilNestReleaseSha = null;
+let androidReleaseCandidate = null;
 
 let editorDraftSaveTimer = null;
 let availableEditorDraft = null;
@@ -1505,9 +1510,7 @@ function updateMediaPreview() {
     const posterUrl = resolveMediaUrl(imgPath);
 
     box.innerHTML = `
-      <video controls muted playsinline poster="${escapeHTML(posterUrl)}">
-        <source src="${escapeHTML(videoUrl)}" type="video/mp4">
-      </video>
+      <video controls muted playsinline poster="${escapeHTML(posterUrl)}" src="${escapeHTML(videoUrl)}"></video>
       <div class="preview-caption">${escapeHTML(title)} · Video Preview</div>
     `;
     return;
@@ -1804,19 +1807,102 @@ async function copyJson() {
   }
 }
 
+const MEDIA_UPLOAD_RULES = {
+  cover: {
+    label: "作品封面",
+    accept: "image/jpeg,image/png,image/webp,image/gif",
+    maxBytes: 20 * 1024 * 1024,
+    hint: "Cover：JPG / PNG / WEBP / GIF，最大 20MB。"
+  },
+  screenshot: {
+    label: "作品截图",
+    accept: "image/jpeg,image/png,image/webp,image/gif",
+    maxBytes: 20 * 1024 * 1024,
+    hint: "Screenshot：JPG / PNG / WEBP / GIF，最大 20MB。"
+  },
+  video: {
+    label: "作品视频",
+    accept: "video/mp4,video/webm",
+    maxBytes: 500 * 1024 * 1024,
+    hint: "Video：MP4 / WEBM，最大 500MB。文件会直接上传到 Blob，请保持页面开启。"
+  },
+  "android-apk": {
+    label: "SilNest Android APK",
+    accept: ".apk,application/vnd.android.package-archive,application/octet-stream",
+    maxBytes: 500 * 1024 * 1024,
+    hint: "Android APK：最大 500MB。上传前填写 Version；上传完成后还需要发布 Android 下载信息。"
+  }
+};
+
+function getEffectiveUploadMimeType(file, kind) {
+  if (kind === "android-apk") {
+    return "application/vnd.android.package-archive";
+  }
+
+  return String(file?.type || "");
+}
+
+function validateMediaFile(file, kind) {
+  const rule = MEDIA_UPLOAD_RULES[kind];
+
+  if (!rule) {
+    throw new Error("未知的媒体上传类型。");
+  }
+
+  if (!file) {
+    throw new Error("请先选择文件。");
+  }
+
+  if (file.size <= 0 || file.size > rule.maxBytes) {
+    throw new Error(
+      `文件大小必须大于 0，并且不超过 ${formatFileSize(rule.maxBytes)}。`
+    );
+  }
+
+  if (kind === "cover" || kind === "screenshot") {
+    const allowed = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif"
+    ];
+
+    if (!allowed.includes(file.type)) {
+      throw new Error("只支持 JPG、PNG、WEBP、GIF 图片。");
+    }
+  }
+
+  if (kind === "video") {
+    if (!["video/mp4", "video/webm"].includes(file.type)) {
+      throw new Error("视频只支持 MP4 或 WEBM。");
+    }
+  }
+
+  if (kind === "android-apk" && !/\.apk$/i.test(file.name)) {
+    throw new Error("Android 发布文件必须以 .apk 结尾。");
+  }
+
+  return rule;
+}
+
 function uploadFileWithProgress(
   presignedUrl,
   file,
-  onProgress = () => {}
+  {
+    contentType = file.type || "application/octet-stream",
+    onProgress = () => {},
+    trackActiveUpload = false
+  } = {}
 ) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
 
+    if (trackActiveUpload) {
+      activeMediaUploadXhr = xhr;
+    }
+
     xhr.open("PUT", presignedUrl, true);
-    xhr.setRequestHeader(
-      "Content-Type",
-      file.type || "application/octet-stream"
-    );
+    xhr.setRequestHeader("Content-Type", contentType);
 
     xhr.upload.addEventListener("progress", (event) => {
       if (!event.lengthComputable) return;
@@ -1832,7 +1918,14 @@ function uploadFileWithProgress(
       });
     });
 
+    const cleanup = () => {
+      if (activeMediaUploadXhr === xhr) {
+        activeMediaUploadXhr = null;
+      }
+    };
+
     xhr.addEventListener("load", () => {
+      cleanup();
       let result = {};
 
       try {
@@ -1858,6 +1951,7 @@ function uploadFileWithProgress(
     });
 
     xhr.addEventListener("error", () => {
+      cleanup();
       reject(
         new Error(
           "Blob upload failed because of a network error."
@@ -1866,6 +1960,7 @@ function uploadFileWithProgress(
     });
 
     xhr.addEventListener("abort", () => {
+      cleanup();
       reject(new Error("Blob upload was cancelled."));
     });
 
@@ -1873,100 +1968,115 @@ function uploadFileWithProgress(
   });
 }
 
-async function uploadCoverImage() {
+async function authorizeBlobUpload({
+  file,
+  kind,
+  slug = "",
+  version = ""
+}) {
   const adminKey = getCurrentAdminKey();
 
   if (!adminKey) {
-    alert("请输入 Admin Key。");
-    return;
+    throw new Error("请输入 Admin Key。");
   }
 
+  const response = await fetch(
+    `${CMS_API_BASE}/api/blob-media?action=upload-url`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-key": adminKey
+      },
+      body: JSON.stringify({
+        fileName: file.name,
+        mimeType: getEffectiveUploadMimeType(file, kind),
+        fileSize: file.size,
+        slug,
+        kind,
+        version
+      })
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok || !result.ok) {
+    throw new Error(
+      result.error || "无法创建 Blob 上传授权。"
+    );
+  }
+
+  return result;
+}
+
+async function uploadBlobAsset({
+  file,
+  kind,
+  slug = "",
+  version = "",
+  trackActiveUpload = false,
+  onProgress = () => {}
+}) {
+  validateMediaFile(file, kind);
+
+  const authorization = await authorizeBlobUpload({
+    file,
+    kind,
+    slug,
+    version
+  });
+
+  const blob = await uploadFileWithProgress(
+    authorization.presignedUrl,
+    file,
+    {
+      contentType:
+        authorization.contentType ||
+        getEffectiveUploadMimeType(file, kind),
+      onProgress,
+      trackActiveUpload
+    }
+  );
+
+  if (!blob.url) {
+    throw new Error(
+      "Blob 上传完成，但响应中没有返回公开 URL。"
+    );
+  }
+
+  return {
+    blob,
+    authorization
+  };
+}
+
+async function uploadCoverImage() {
   const fileInput = $("#coverFileInput");
   const file = fileInput.files?.[0];
-
-  if (!file) {
-    alert("请先选择一张封面图片。");
-    return;
-  }
-
-  const allowedTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    "image/gif"
-  ];
-
-  if (!allowedTypes.includes(file.type)) {
-    alert("只支持 JPG、PNG、WEBP、GIF 图片。");
-    return;
-  }
-
-  const maxBytes = 20 * 1024 * 1024;
-
-  if (file.size > maxBytes) {
-    alert("图片太大，请控制在 20MB 以内。");
-    return;
-  }
-
   const uploadBtn = $("#uploadCoverBtn");
   const originalText = uploadBtn.textContent;
 
-  uploadBtn.disabled = true;
-  uploadBtn.textContent = "准备上传...";
-
   try {
-    const slug = getUploadSlug();
+    validateMediaFile(file, "cover");
 
-    const authorizeResponse = await fetch(
-      `${CMS_API_BASE}/api/blob-media?action=upload-url`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-key": adminKey
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          mimeType: file.type,
-          fileSize: file.size,
-          slug,
-          kind: "cover"
-        })
-      }
-    );
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = "准备上传...";
 
-    const authorization =
-      await authorizeResponse.json();
-
-    if (!authorizeResponse.ok || !authorization.ok) {
-      throw new Error(
-        authorization.error ||
-        "无法创建 Blob 上传授权。"
-      );
-    }
-
-    const blob = await uploadFileWithProgress(
-      authorization.presignedUrl,
+    const { blob, authorization } = await uploadBlobAsset({
       file,
-      ({ percentage }) => {
-        uploadBtn.textContent =
-          `上传中 ${percentage}%`;
+      kind: "cover",
+      slug: getUploadSlug(),
+      onProgress: ({ percentage }) => {
+        uploadBtn.textContent = `上传中 ${percentage}%`;
       }
-    );
-
-    if (!blob.url) {
-      throw new Error(
-        "Blob 上传完成，但响应中没有返回公开 URL。"
-      );
-    }
+    });
 
     fields.img.value = blob.url;
     fields.mediaType.value = "image";
     updateMediaPreview();
 
-    await loadMediaLibrary({
-      silent: true
-    });
+    await loadMediaLibrary({ silent: true });
 
     alert(
       `封面已上传到 Vercel Blob！\n\n` +
@@ -1983,7 +2093,6 @@ async function uploadCoverImage() {
   }
 }
 
-
 function formatFileSize(bytes) {
   const size = Number(bytes || 0);
 
@@ -1991,16 +2100,185 @@ function formatFileSize(bytes) {
   if (size < 1024 * 1024) {
     return `${(size / 1024).toFixed(1)} KB`;
   }
+  if (size < 1024 * 1024 * 1024) {
+    return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  }
 
-  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  return `${(size / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
+
+function updateMediaUploadUI() {
+  const kindElement = $("#mediaUploadKind");
+  const fileInput = $("#mediaFileInput");
+  const hint = $("#mediaUploadHint");
+  const slugGroup = $("#mediaUploadSlugGroup");
+  const androidFields = $("#androidUploadFields");
+
+  if (!kindElement || !fileInput) return;
+
+  const kind = kindElement.value;
+  const rule = MEDIA_UPLOAD_RULES[kind] || MEDIA_UPLOAD_RULES.cover;
+
+  fileInput.accept = rule.accept;
+
+  if (hint) {
+    hint.textContent = rule.hint;
+  }
+
+  if (slugGroup) {
+    slugGroup.hidden = kind === "android-apk";
+  }
+
+  if (androidFields) {
+    androidFields.hidden = kind !== "android-apk";
+  }
+
+  if (kind !== "android-apk") {
+    const slugInput = $("#mediaUploadSlug");
+    if (slugInput && !slugInput.value.trim()) {
+      slugInput.value = getUploadSlug();
+    }
+  }
+}
+
+function updateMediaUploadProgress({
+  label = "上传中",
+  loaded = 0,
+  total = 0,
+  percentage = 0,
+  hidden = false
+} = {}) {
+  const box = $("#mediaUploadProgress");
+  const labelElement = $("#mediaUploadProgressLabel");
+  const percentElement = $("#mediaUploadProgressPercent");
+  const bar = $("#mediaUploadProgressBar");
+  const bytes = $("#mediaUploadProgressBytes");
+
+  if (!box) return;
+
+  box.hidden = hidden;
+
+  if (labelElement) labelElement.textContent = label;
+  if (percentElement) percentElement.textContent = `${percentage}%`;
+  if (bar) bar.value = percentage;
+  if (bytes) {
+    bytes.textContent = total
+      ? `${formatFileSize(loaded)} / ${formatFileSize(total)}`
+      : "";
+  }
+}
+
+function cancelMediaUpload() {
+  if (!activeMediaUploadXhr) return;
+  activeMediaUploadXhr.abort();
+}
+
+async function uploadMediaAsset() {
+  const kind = $("#mediaUploadKind").value;
+  const file = $("#mediaFileInput").files?.[0];
+  const slug = $("#mediaUploadSlug").value.trim();
+  const version = $("#androidUploadVersion").value.trim();
+  const versionCode = $("#androidUploadVersionCode").value.trim();
+  const uploadBtn = $("#uploadMediaBtn");
+  const cancelBtn = $("#cancelMediaUploadBtn");
+  const originalText = uploadBtn.textContent;
+
+  try {
+    validateMediaFile(file, kind);
+
+    if (kind !== "android-apk" && !slug) {
+      throw new Error("请输入作品 Slug。");
+    }
+
+    if (kind === "android-apk" && !version) {
+      throw new Error("上传 APK 前请填写 Android Version。");
+    }
+
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = "准备上传...";
+    cancelBtn.hidden = false;
+
+    updateMediaUploadProgress({
+      label: file.name,
+      percentage: 0,
+      loaded: 0,
+      total: file.size
+    });
+
+    const { blob, authorization } = await uploadBlobAsset({
+      file,
+      kind,
+      slug,
+      version,
+      trackActiveUpload: true,
+      onProgress: (progress) => {
+        uploadBtn.textContent = `上传中 ${progress.percentage}%`;
+        updateMediaUploadProgress({
+          label: file.name,
+          ...progress
+        });
+      }
+    });
+
+    updateMediaUploadProgress({
+      label: "上传完成",
+      loaded: file.size,
+      total: file.size,
+      percentage: 100
+    });
+
+    if (kind === "cover") {
+      fields.img.value = blob.url;
+      fields.mediaType.value = "image";
+      updateMediaPreview();
+    } else if (kind === "video") {
+      fields.video.value = blob.url;
+      fields.mediaType.value = "video";
+      updateMediaPreview();
+    } else if (kind === "android-apk") {
+      setAndroidReleaseCandidate({
+        source: "blob",
+        mediaType: "apk",
+        name: file.name,
+        url: blob.url,
+        pathname: blob.pathname || authorization.pathname,
+        path: blob.pathname || authorization.pathname,
+        size: file.size,
+        version
+      }, {
+        version,
+        versionCode
+      });
+    }
+
+    await loadMediaLibrary({ silent: true });
+
+    alert(
+      `${MEDIA_UPLOAD_RULES[kind].label}上传成功！\n\n` +
+      `Path: ${blob.pathname || authorization.pathname}\n` +
+      `URL: ${blob.url}` +
+      (kind === "android-apk"
+        ? "\n\nAPK 已设为发布候选。确认版本后点击「发布 Android 下载信息」。"
+        : "")
+    );
+  } catch (error) {
+    console.error(error);
+
+    if (error.message === "Blob upload was cancelled.") {
+      alert("上传已取消。");
+    } else {
+      alert(`媒体上传失败：${error.message}`);
+    }
+  } finally {
+    uploadBtn.disabled = false;
+    uploadBtn.textContent = originalText;
+    cancelBtn.hidden = true;
+    activeMediaUploadXhr = null;
+  }
 }
 
 function getMediaItemPreviewUrl(item) {
-  return (
-    item?.url ||
-    item?.downloadUrl ||
-    ""
-  );
+  return item?.url || item?.downloadUrl || "";
 }
 
 function getMediaItemValue(item) {
@@ -2017,48 +2295,172 @@ function getMediaSourceLabel(item) {
     : "GitHub Legacy";
 }
 
+function inferMediaType(item) {
+  if (item?.mediaType) return item.mediaType;
+
+  const path = String(
+    item?.pathname || item?.path || item?.name || ""
+  );
+
+  if (/\.apk$/i.test(path)) return "apk";
+  if (/\.(mp4|webm)$/i.test(path)) return "video";
+  return "image";
+}
+
+function getMediaProjectKey(item) {
+  if (item?.slug) return String(item.slug);
+
+  const path = String(item?.pathname || item?.path || "");
+  const match = path.match(/^works\/([^/]+)\//);
+
+  if (match) return match[1];
+  if (path.startsWith("apps/silnest/")) return "silnest";
+
+  return "legacy";
+}
+
+function populateMediaProjectFilter(items) {
+  const select = $("#mediaProjectFilter");
+  if (!select) return;
+
+  const current = select.value || "all";
+  const projects = [...new Set(
+    items.map(getMediaProjectKey).filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b));
+
+  select.innerHTML = [
+    '<option value="all">全部项目</option>',
+    ...projects.map(
+      (project) =>
+        `<option value="${escapeHTML(project)}">${escapeHTML(project)}</option>`
+    )
+  ].join("");
+
+  select.value = projects.includes(current) ? current : "all";
+}
+
+function getFilteredMediaItems(items) {
+  const search = String($("#mediaSearchInput")?.value || "")
+    .trim()
+    .toLowerCase();
+  const type = $("#mediaTypeFilter")?.value || "all";
+  const source = $("#mediaSourceFilter")?.value || "all";
+  const project = $("#mediaProjectFilter")?.value || "all";
+
+  return items.filter((item) => {
+    const itemType = inferMediaType(item);
+    const itemSource = item.source === "blob" ? "blob" : "github";
+    const itemProject = getMediaProjectKey(item);
+    const haystack = [
+      item.name,
+      item.pathname,
+      item.path,
+      item.slug,
+      item.version,
+      item.contentType
+    ].join(" ").toLowerCase();
+
+    return (
+      (type === "all" || itemType === type) &&
+      (source === "all" || itemSource === source) &&
+      (project === "all" || itemProject === project) &&
+      (!search || haystack.includes(search))
+    );
+  });
+}
+
+function renderMediaPreviewContent(item, previewUrl) {
+  const type = inferMediaType(item);
+
+  if (type === "video") {
+    return `
+      <div class="media-item-preview video-preview">
+        <video src="${escapeHTML(previewUrl)}" muted playsinline preload="metadata"></video>
+      </div>
+    `;
+  }
+
+  if (type === "apk") {
+    return `
+      <div class="media-item-preview file-preview">
+        <div class="media-file-icon">APK</div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="media-item-preview">
+      <img
+        src="${escapeHTML(previewUrl)}"
+        alt="${escapeHTML(item.name || "Media")}" loading="lazy"
+      />
+    </div>
+  `;
+}
+
 function renderMediaLibrary(
   items = mediaLibraryItems,
-  summary = null
+  summary = mediaLibrarySummary
 ) {
   const grid = $("#mediaLibraryGrid");
   const status = $("#mediaLibraryStatus");
 
   if (!grid || !status) return;
 
-  if (!items.length) {
-    status.textContent =
-      "媒体库为空。上传封面后，图片会出现在这里。";
-    grid.innerHTML = "";
-    return;
-  }
+  populateMediaProjectFilter(items);
+
+  const visibleItems = getFilteredMediaItems(items);
 
   const blobCount = summary?.blobCount ??
     items.filter((item) => item.source === "blob").length;
-
   const legacyCount = summary?.legacyCount ??
     items.filter((item) => item.source !== "blob").length;
 
   status.textContent =
-    `已读取 ${items.length} 张图片：` +
-    `Vercel Blob ${blobCount} 张，` +
-    `GitHub Legacy ${legacyCount} 张。`;
+    `总计 ${items.length} 个资源：Vercel Blob ${blobCount}，` +
+    `GitHub Legacy ${legacyCount}。当前筛选显示 ${visibleItems.length} 个。`;
 
-  grid.innerHTML = items.map((item) => {
+  if (!visibleItems.length) {
+    grid.innerHTML = "";
+    return;
+  }
+
+  grid.innerHTML = visibleItems.map((item) => {
     const previewUrl = getMediaItemPreviewUrl(item);
     const mediaValue = getMediaItemValue(item);
     const sourceLabel = getMediaSourceLabel(item);
+    const mediaType = inferMediaType(item);
     const canDelete = item.source === "blob";
+    const project = getMediaProjectKey(item);
+
+    let primaryAction = "";
+
+    if (mediaType === "image") {
+      primaryAction = `
+        <button class="btn small ghost" type="button"
+          data-media-cover="${escapeHTML(mediaValue)}">
+          设为封面
+        </button>
+      `;
+    } else if (mediaType === "video") {
+      primaryAction = `
+        <button class="btn small ghost" type="button"
+          data-media-video="${escapeHTML(mediaValue)}">
+          设为视频
+        </button>
+      `;
+    } else if (mediaType === "apk") {
+      primaryAction = `
+        <button class="btn small ghost" type="button"
+          data-media-apk-path="${escapeHTML(item.pathname || item.path || "")}">
+          设为 Android 发布包
+        </button>
+      `;
+    }
 
     return `
       <article class="media-item">
-        <div class="media-item-preview">
-          <img
-            src="${escapeHTML(previewUrl)}"
-            alt="${escapeHTML(item.name || "Media")}"
-            loading="lazy"
-          />
-        </div>
+        ${renderMediaPreviewContent(item, previewUrl)}
 
         <div class="media-item-body">
           <span class="media-item-name">
@@ -2066,32 +2468,32 @@ function renderMediaLibrary(
           </span>
 
           <span class="media-item-path">
-            ${escapeHTML(sourceLabel)}
-            · ${escapeHTML(item.path || item.pathname || "")}
+            ${escapeHTML(item.pathname || item.path || "")}
             · ${escapeHTML(formatFileSize(item.size))}
           </span>
 
+          <div class="media-item-badges">
+            <span class="media-item-badge">${escapeHTML(mediaType.toUpperCase())}</span>
+            <span class="media-item-badge">${escapeHTML(sourceLabel)}</span>
+            <span class="media-item-badge">${escapeHTML(project)}</span>
+          </div>
+
           <div class="media-item-actions">
-            <button
-              class="btn small ghost"
-              type="button"
-              data-media-value="${escapeHTML(mediaValue)}"
-            >
-              设为封面
+            ${primaryAction}
+
+            <button class="btn small ghost" type="button"
+              data-copy-media-value="${escapeHTML(mediaValue)}">
+              复制 URL
             </button>
 
-            ${
-              canDelete
-                ? `
-                  <button
-                    class="btn small danger"
-                    type="button"
-                    data-delete-blob-path="${escapeHTML(item.pathname || item.path || "")}"
-                  >
-                    删除 Blob
-                  </button>
-                `
-                : ""
+            ${canDelete
+              ? `
+                <button class="btn small danger" type="button"
+                  data-delete-blob-path="${escapeHTML(item.pathname || item.path || "")}">
+                  删除 Blob
+                </button>
+              `
+              : ""
             }
           </div>
         </div>
@@ -2099,33 +2501,57 @@ function renderMediaLibrary(
     `;
   }).join("");
 
-  grid
-    .querySelectorAll("[data-media-value]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        const value = button.dataset.mediaValue;
-
-        fields.img.value = value;
-        fields.mediaType.value = "image";
-        updateMediaPreview();
-        activatePanel("worksPanel");
-
-        alert(
-          `已设置当前封面：\n${value}\n\n` +
-          `记得点击「保存到本地列表」，然后再「发布到 GitHub」。`
-        );
-      });
+  grid.querySelectorAll("[data-media-cover]").forEach((button) => {
+    button.addEventListener("click", () => {
+      fields.img.value = button.dataset.mediaCover;
+      fields.mediaType.value = "image";
+      updateMediaPreview();
+      activatePanel("worksPanel");
+      alert("已设置为当前作品封面。请保存到本地列表后再发布。");
     });
+  });
 
-  grid
-    .querySelectorAll("[data-delete-blob-path]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        deleteBlobMedia(
-          button.dataset.deleteBlobPath
-        );
-      });
+  grid.querySelectorAll("[data-media-video]").forEach((button) => {
+    button.addEventListener("click", () => {
+      fields.video.value = button.dataset.mediaVideo;
+      fields.mediaType.value = "video";
+      updateMediaPreview();
+      activatePanel("worksPanel");
+      alert("已设置为当前作品视频。请保存到本地列表后再发布。");
     });
+  });
+
+  grid.querySelectorAll("[data-media-apk-path]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const item = mediaLibraryItems.find(
+        (media) =>
+          (media.pathname || media.path) === button.dataset.mediaApkPath
+      );
+
+      if (item) {
+        setAndroidReleaseCandidate(item);
+      }
+    });
+  });
+
+  grid.querySelectorAll("[data-copy-media-value]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(
+          button.dataset.copyMediaValue
+        );
+        alert("媒体 URL 已复制。");
+      } catch {
+        alert("复制失败，请手动复制媒体地址。");
+      }
+    });
+  });
+
+  grid.querySelectorAll("[data-delete-blob-path]").forEach((button) => {
+    button.addEventListener("click", () => {
+      deleteBlobMedia(button.dataset.deleteBlobPath);
+    });
+  });
 }
 
 async function fetchMediaApi(url, adminKey) {
@@ -2149,16 +2575,11 @@ async function fetchMediaApi(url, adminKey) {
 }
 
 async function loadMediaLibrary(options = {}) {
-  const {
-    silent = false
-  } = options;
-
+  const { silent = false } = options;
   const adminKey = getCurrentAdminKey();
 
   if (!adminKey) {
-    if (!silent) {
-      alert("请输入 Admin Key。");
-    }
+    if (!silent) alert("请输入 Admin Key。");
     return;
   }
 
@@ -2191,25 +2612,22 @@ async function loadMediaLibrary(options = {}) {
 
     const blobItems =
       blobResult.status === "fulfilled"
-        ? (
-            Array.isArray(blobResult.value.items)
-              ? blobResult.value.items
-              : []
-          )
+        ? (Array.isArray(blobResult.value.items)
+            ? blobResult.value.items
+            : [])
         : [];
 
     const legacyItems =
       legacyResult.status === "fulfilled"
-        ? (
-            Array.isArray(legacyResult.value.items)
-              ? legacyResult.value.items.map(
-                  (item) => ({
-                    ...item,
-                    source: "github"
-                  })
-                )
-              : []
-          )
+        ? (Array.isArray(legacyResult.value.items)
+            ? legacyResult.value.items.map((item) => ({
+                ...item,
+                source: "github",
+                mediaType: "image",
+                kind: "legacy-image",
+                slug: "legacy"
+              }))
+            : [])
         : [];
 
     if (
@@ -2227,12 +2645,14 @@ async function loadMediaLibrary(options = {}) {
       ...legacyItems
     ];
 
+    mediaLibrarySummary = {
+      blobCount: blobItems.length,
+      legacyCount: legacyItems.length
+    };
+
     renderMediaLibrary(
       mediaLibraryItems,
-      {
-        blobCount: blobItems.length,
-        legacyCount: legacyItems.length
-      }
+      mediaLibrarySummary
     );
 
     const warnings = [];
@@ -2250,15 +2670,13 @@ async function loadMediaLibrary(options = {}) {
     }
 
     if (warnings.length && status) {
-      status.textContent +=
-        ` 部分来源不可用：${warnings.join("；")}`;
+      status.textContent += ` 部分来源不可用：${warnings.join("；")}`;
     }
   } catch (error) {
     console.error(error);
 
     if (status) {
-      status.textContent =
-        `媒体库读取失败：${error.message}`;
+      status.textContent = `媒体库读取失败：${error.message}`;
     }
 
     if (!silent) {
@@ -2285,17 +2703,10 @@ async function deleteBlobMedia(pathname) {
     return;
   }
 
-  const item = mediaLibraryItems.find(
-    (media) =>
-      media.source === "blob" &&
-      (media.pathname || media.path) === pathname
-  );
-
   const confirmed = confirm(
-    `确定删除这个 Blob 文件吗？\n\n` +
-    `${pathname}\n\n` +
-    `如果这个文件的 URL 已经写入 works.json，删除后前台图片会失效。` +
-    `请确认它当前没有被正式作品引用。`
+    `确定删除这个 Blob 文件吗？\n\n${pathname}\n\n` +
+    `服务器会先检查当前 works.json 和 SilNest 发布信息。` +
+    `如果仍被引用，删除会被阻止。`
   );
 
   if (!confirmed) return;
@@ -2309,8 +2720,283 @@ async function deleteBlobMedia(pathname) {
           "Content-Type": "application/json",
           "x-admin-key": adminKey
         },
+        body: JSON.stringify({ pathname })
+      }
+    );
+
+    const result = await response.json();
+
+    if (
+      response.status === 409 &&
+      result.code === "BLOB_REFERENCED"
+    ) {
+      const references = Array.isArray(result.references)
+        ? result.references
+            .map((item) => `${item.source} · ${item.jsonPath}`)
+            .join("\n")
+        : "当前发布数据";
+
+      alert(
+        `删除已阻止：这个 Blob 仍然被引用。\n\n${references}\n\n` +
+        `请先更换对应媒体或发布包，再重新删除。`
+      );
+      return;
+    }
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "删除 Blob 失败。");
+    }
+
+    alert(`Blob 已删除：\n${pathname}`);
+    await loadMediaLibrary({ silent: true });
+  } catch (error) {
+    console.error(error);
+    alert(`删除 Blob 失败：${error.message}`);
+  }
+}
+
+function inferVersionFromApkPath(pathname) {
+  const match = String(pathname || "")
+    .match(/^apps\/silnest\/android\/([^/]+)\//);
+
+  return match ? match[1] : "";
+}
+
+function setAndroidReleaseCandidate(item, overrides = {}) {
+  if (!item || inferMediaType(item) !== "apk") {
+    alert("请选择一个 APK 文件。");
+    return;
+  }
+
+  const version =
+    overrides.version ||
+    item.version ||
+    inferVersionFromApkPath(item.pathname || item.path);
+
+  androidReleaseCandidate = {
+    fileName: item.name || "SilNest.apk",
+    url: item.url || item.downloadUrl || "",
+    pathname: item.pathname || item.path || "",
+    size: Number(item.size || 0),
+    version,
+    versionCode:
+      overrides.versionCode ||
+      $("#androidReleaseVersionCode")?.value ||
+      ""
+  };
+
+  $("#androidReleaseVersion").value = version || "";
+  $("#androidReleaseVersionCode").value =
+    androidReleaseCandidate.versionCode || "";
+  $("#androidReleaseUrl").value = androidReleaseCandidate.url;
+  $("#androidReleasePathname").value = androidReleaseCandidate.pathname;
+
+  const meta = $("#androidReleaseMeta");
+  if (meta) {
+    meta.textContent =
+      `${androidReleaseCandidate.fileName} · ` +
+      `${formatFileSize(androidReleaseCandidate.size)} · 发布候选`;
+  }
+
+  alert(
+    "APK 已设为 Android 发布候选。确认 Version / Version Code 后，" +
+    "点击「发布 Android 下载信息」。"
+  );
+}
+
+function renderAndroidRelease(data, sha) {
+  currentSilNestRelease = data || null;
+  currentSilNestReleaseSha = sha ?? null;
+
+  const android = data?.android || {};
+  const status = $("#androidReleaseStatus");
+
+  if (status) {
+    status.className =
+      `android-release-status ${android.available ? "available" : "disabled"}`;
+    status.textContent = android.available
+      ? `当前已开放 Android 下载：v${android.version || "unknown"} · ${formatFileSize(android.size)}`
+      : "当前 Android 下载处于关闭 / 预留状态。";
+  }
+
+  $("#androidReleaseVersion").value = android.version || "";
+  $("#androidReleaseVersionCode").value = android.versionCode || "";
+  $("#androidReleaseUrl").value = android.url || "";
+  $("#androidReleasePathname").value = android.pathname || "";
+
+  const meta = $("#androidReleaseMeta");
+  if (meta) {
+    meta.textContent = android.fileName
+      ? `${android.fileName} · ${formatFileSize(android.size)} · ${android.publishedAt || "未标记发布日期"}`
+      : "尚未选择已发布 APK。";
+  }
+
+  androidReleaseCandidate = android.url
+    ? {
+        fileName: android.fileName || "",
+        url: android.url || "",
+        pathname: android.pathname || "",
+        size: Number(android.size || 0),
+        version: android.version || "",
+        versionCode: android.versionCode || ""
+      }
+    : null;
+}
+
+async function loadAndroidRelease(options = {}) {
+  const { silent = false } = options;
+  const adminKey = getCurrentAdminKey();
+
+  if (!adminKey) {
+    if (!silent) alert("请输入 Admin Key。");
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `${CMS_API_BASE}/api/app-release`,
+      {
+        headers: {
+          "x-admin-key": adminKey
+        }
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "读取 App 发布信息失败。");
+    }
+
+    renderAndroidRelease(result.data, result.sha);
+    return result;
+  } catch (error) {
+    console.error(error);
+
+    if (!silent) {
+      alert(`读取 Android 发布信息失败：${error.message}`);
+    }
+    return null;
+  }
+}
+
+async function publishAndroidRelease() {
+  const adminKey = getCurrentAdminKey();
+
+  if (!adminKey) {
+    alert("请输入 Admin Key。");
+    return;
+  }
+
+  if (!androidReleaseCandidate?.url) {
+    alert("请先上传或从媒体库选择一个 APK。");
+    return;
+  }
+
+  const version = $("#androidReleaseVersion").value.trim();
+  const versionCode = $("#androidReleaseVersionCode").value.trim();
+
+  if (!version) {
+    alert("请填写 Android Version。");
+    return;
+  }
+
+  const confirmed = confirm(
+    `确定把这个 APK 设为 SilNest 当前 Android 下载版本吗？\n\n` +
+    `Version: ${version}\n` +
+    `File: ${androidReleaseCandidate.fileName}\n` +
+    `Size: ${formatFileSize(androidReleaseCandidate.size)}\n\n` +
+    `这会提交 data/apps/silnest.json 到 cms-v1。`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const response = await fetch(
+      `${CMS_API_BASE}/api/app-release`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-key": adminKey
+        },
         body: JSON.stringify({
-          pathname
+          expectedSha: currentSilNestReleaseSha,
+          android: {
+            available: true,
+            version,
+            versionCode,
+            fileName: androidReleaseCandidate.fileName,
+            url: androidReleaseCandidate.url,
+            pathname: androidReleaseCandidate.pathname,
+            size: androidReleaseCandidate.size,
+            publishedAt: today()
+          }
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    if (
+      response.status === 409 &&
+      result.code === "REMOTE_CHANGED"
+    ) {
+      alert(
+        "Android 发布信息已在远程发生变化。请点击刷新后重新确认。"
+      );
+      await loadAndroidRelease({ silent: true });
+      return;
+    }
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "发布 Android 信息失败。");
+    }
+
+    renderAndroidRelease(result.data, result.sha);
+
+    alert(
+      `Android 发布信息已写入 ${result.filePath}。\n\n` +
+      `Commit: ${result.commitSha ? result.commitSha.slice(0, 7) : "unknown"}\n\n` +
+      `下一步仍需把 cms-v1 合并到 main，正式站点才会更新。`
+    );
+  } catch (error) {
+    console.error(error);
+    alert(`发布 Android 信息失败：${error.message}`);
+  }
+}
+
+async function disableAndroidRelease() {
+  const adminKey = getCurrentAdminKey();
+
+  if (!adminKey) {
+    alert("请输入 Admin Key。");
+    return;
+  }
+
+  const confirmed = confirm(
+    "确定暂停 SilNest Android 下载吗？\n\nBlob 文件不会被删除，只会把公开下载状态设为 unavailable。"
+  );
+
+  if (!confirmed) return;
+
+  const currentAndroid = currentSilNestRelease?.android || {};
+
+  try {
+    const response = await fetch(
+      `${CMS_API_BASE}/api/app-release`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-key": adminKey
+        },
+        body: JSON.stringify({
+          expectedSha: currentSilNestReleaseSha,
+          android: {
+            ...currentAndroid,
+            available: false
+          }
         })
       }
     );
@@ -2318,43 +3004,38 @@ async function deleteBlobMedia(pathname) {
     const result = await response.json();
 
     if (!response.ok || !result.ok) {
-      throw new Error(
-        result.error || "删除 Blob 失败。"
-      );
+      throw new Error(result.error || "暂停 Android 下载失败。");
     }
 
-    const currentValue =
-      String(fields.img.value || "").trim();
-
-    if (
-      item?.url &&
-      currentValue === String(item.url).trim()
-    ) {
-      alert(
-        "Blob 已删除。当前编辑表单仍然引用这个 URL，" +
-        "请更换封面后再保存作品。"
-      );
-    } else {
-      alert(`Blob 已删除：\n${pathname}`);
-    }
-
-    await loadMediaLibrary({
-      silent: true
-    });
+    renderAndroidRelease(result.data, result.sha);
+    alert("Android 下载已设为暂停。Blob 文件仍然保留。");
   } catch (error) {
     console.error(error);
-    alert(`删除 Blob 失败：${error.message}`);
+    alert(`暂停 Android 下载失败：${error.message}`);
   }
 }
 
 function openMediaLibrary() {
   activatePanel("mediaPanel");
 
+  const slugInput = $("#mediaUploadSlug");
+  if (slugInput && !slugInput.value.trim()) {
+    slugInput.value = getUploadSlug();
+  }
+
   if (!mediaLibraryItems.length) {
     loadMediaLibrary();
   }
+
+  if (!currentSilNestRelease) {
+    loadAndroidRelease({ silent: true });
+  }
 }
 
+function initializeMediaManagerUI() {
+  updateMediaUploadUI();
+  updateMediaUploadProgress({ hidden: true });
+}
 
 function formatBackupName(name) {
   return String(name || "")
@@ -3376,6 +4057,16 @@ function bindEvents() {
   $("#uploadCoverBtn").addEventListener("click", uploadCoverImage);
   $("#openMediaLibraryBtn").addEventListener("click", openMediaLibrary);
   $("#refreshMediaBtn").addEventListener("click", loadMediaLibrary);
+  $("#mediaUploadKind").addEventListener("change", updateMediaUploadUI);
+  $("#uploadMediaBtn").addEventListener("click", uploadMediaAsset);
+  $("#cancelMediaUploadBtn").addEventListener("click", cancelMediaUpload);
+  $("#mediaSearchInput").addEventListener("input", () => renderMediaLibrary());
+  $("#mediaTypeFilter").addEventListener("change", () => renderMediaLibrary());
+  $("#mediaSourceFilter").addEventListener("change", () => renderMediaLibrary());
+  $("#mediaProjectFilter").addEventListener("change", () => renderMediaLibrary());
+  $("#refreshAndroidReleaseBtn").addEventListener("click", () => loadAndroidRelease());
+  $("#publishAndroidReleaseBtn").addEventListener("click", publishAndroidRelease);
+  $("#disableAndroidReleaseBtn").addEventListener("click", disableAndroidRelease);
   $("#refreshBackupsBtn").addEventListener("click", loadBackups);
 
   $("#refreshSystemStatusBtn").addEventListener(
@@ -3437,10 +4128,14 @@ function bindEvents() {
 bindPanels();
 bindEvents();
 bindEditorDraftEvents();
+initializeMediaManagerUI();
 loadSavedAdminKey();
 
 if (getCurrentAdminKey()) {
   loadCmsSystemStatus({
+    silent: true
+  });
+  loadAndroidRelease({
     silent: true
   });
 }

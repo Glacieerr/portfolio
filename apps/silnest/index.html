@@ -186,26 +186,31 @@
           </div>
         </article>
 
-        <article class="download-card">
+        <article class="download-card" id="androidDownloadCard">
           <h3>
             <span class="lang-zh">Android · APK 下载</span>
             <span class="lang-en">Android · APK Download</span>
           </h3>
-          <p class="lang-zh block">
-            已预留 Android APK 下载通道。后期只需把下面按钮替换为真实 APK 地址即可。
+          <p class="lang-zh block" id="androidReleaseDescriptionZh">
+            Android APK 下载通道已预留。当前尚未发布公开安装包。
           </p>
-          <p class="lang-en block">
-            An Android APK channel is now reserved. Later you can simply replace the button below with the real APK URL.
+          <p class="lang-en block" id="androidReleaseDescriptionEn">
+            The Android APK channel is reserved. A public install package has not been released yet.
           </p>
-          <span class="download-status">
+          <span class="download-status" id="androidReleaseStatus">
             <span class="lang-zh">预留中</span>
             <span class="lang-en">Reserved</span>
           </span>
+          <p id="androidReleaseMeta" hidden></p>
           <div class="hero-actions">
-            <span class="button disabled" aria-disabled="true">
+            <span class="button disabled" id="androidDownloadPlaceholder" aria-disabled="true">
               <span class="lang-zh">Android APK（后续开放）</span>
               <span class="lang-en">Android APK (Coming Later)</span>
             </span>
+            <a class="button primary" id="androidDownloadButton" href="#" rel="noopener" hidden>
+              <span class="lang-zh">下载 Android APK</span>
+              <span class="lang-en">Download Android APK</span>
+            </a>
           </div>
         </article>
       </div>
