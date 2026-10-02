@@ -1666,3 +1666,187 @@ select:focus {
     width: fit-content;
   }
 }
+
+/* Phase 16E · Media Library 2.0 */
+.media-manager-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.media-manager-card {
+  min-width: 0;
+}
+
+.media-manager-form,
+.android-release-status,
+.android-release-meta {
+  display: grid;
+  gap: 12px;
+}
+
+.media-manager-form > input[type="file"] {
+  width: 100%;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 11px 12px;
+  background: rgba(2, 6, 23, 0.34);
+}
+
+.media-manager-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.media-upload-progress {
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  background: rgba(30, 64, 175, 0.1);
+}
+
+.media-upload-progress[hidden] {
+  display: none !important;
+}
+
+.media-upload-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: #dbeafe;
+  font-size: 0.82rem;
+}
+
+.media-upload-progress progress {
+  width: 100%;
+  height: 10px;
+  accent-color: var(--cyan);
+}
+
+#mediaUploadProgressBytes {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.android-release-upload-fields[hidden] {
+  display: none !important;
+}
+
+.android-release-status {
+  margin-bottom: 14px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(2, 6, 23, 0.3);
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.android-release-status.available {
+  border-color: rgba(34, 197, 94, 0.34);
+  background: rgba(22, 101, 52, 0.12);
+}
+
+.android-release-status.disabled {
+  border-color: rgba(251, 191, 36, 0.34);
+  background: rgba(113, 63, 18, 0.12);
+}
+
+.android-release-meta {
+  margin: 12px 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.media-library-card {
+  margin-top: 0;
+}
+
+.media-library-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(130px, auto));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.media-item-preview.video-preview {
+  display: grid;
+  place-items: center;
+}
+
+.media-item-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-item-preview.file-preview {
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  text-align: center;
+}
+
+.media-file-icon {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  background: rgba(42, 90, 255, 0.14);
+  color: #dbeafe;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.media-item-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.media-item-badge {
+  display: inline-flex;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: #cbd5e1;
+  background: rgba(15, 23, 42, 0.5);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.media-item-actions {
+  flex-wrap: wrap;
+}
+
+.media-item-actions .btn {
+  flex: 0 1 auto;
+}
+
+@media (max-width: 1050px) {
+  .media-manager-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .media-library-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .media-library-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
