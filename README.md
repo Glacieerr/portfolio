@@ -1,10 +1,15 @@
-# Personal Portfolio CMS
+<p><picture>
+  <source media="(prefers-color-scheme: light)" srcset=".github/readme/header-light.svg">
+  <img src=".github/readme/header-dark.svg" width="100%" alt="Portfolio and CMS: my bilingual portfolio site and the Git-backed CMS I built for it. Live at yecanyuan.com. JavaScript on Vercel, with the GitHub REST API.">
+</picture></p>
 
-A bilingual, Git-backed personal portfolio and lightweight content management system.
+**A bilingual (Chinese and English) portfolio website, and the Git-backed CMS I built to run it. Live at [yecanyuan.com](https://yecanyuan.com).**
 
-The project provides a public portfolio website and a browser-based CMS for managing software, tools, UI/UX, photography, art, motion projects, media assets, and application release metadata.
+The site also hosts SilNest's App Store pages: [app page](https://yecanyuan.com/apps/silnest/) · [support](https://yecanyuan.com/apps/silnest/support/) · [privacy policy](https://yecanyuan.com/apps/silnest/privacy/).
 
-## Features
+<a href="https://yecanyuan.com"><img src=".github/readme/site-home.jpg" width="100%" alt="The front page of yecanyuan.com: the title Creative Systems, a short introduction in Chinese, and three cards for software, tools and visual work. Opens the site."></a>
+
+## What it does
 
 ### Public portfolio
 
@@ -35,6 +40,25 @@ The project provides a public portfolio website and a browser-based CMS for mana
 - Safe-branch and environment checks
 - Reference protection before deleting Blob assets
 - SilNest Android release metadata management
+
+## How to run
+
+The static website and CMS interface can be opened with a local static server such as VS Code Live Server:
+
+```text
+http://127.0.0.1:5500/
+http://127.0.0.1:5500/admin/
+```
+
+Production API write operations may reject local browser requests after `ALLOWED_ORIGIN` is restricted. This is intentional. The API functions in `api/` run on Vercel and need the environment variables listed under [Required environment variables](#required-environment-variables).
+
+## How to test
+
+There is no automated test suite. Each release is checked by hand against [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) (public site, CMS editor, draft recovery, publishing and backups), and the CMS itself validates content and shows the publish diff before anything is written.
+
+## Tech stack
+
+HTML, CSS and JavaScript (no framework), Vercel Functions, Vercel Blob, the GitHub REST API, Cloudflare DNS.
 
 ## Architecture
 
@@ -223,17 +247,6 @@ Optional / legacy variables:
 
 Never commit `ADMIN_KEY`, `GITHUB_TOKEN`, or temporary environment credentials to the repository.
 
-## Local development
-
-The static website and CMS interface can be opened with a local static server such as VS Code Live Server:
-
-```text
-http://127.0.0.1:5500/
-http://127.0.0.1:5500/admin/
-```
-
-Production API write operations may reject local browser requests after `ALLOWED_ORIGIN` is restricted. This is intentional.
-
 ## Deployment
 
 - `cms-v1` is the active CMS write / preview branch.
@@ -254,3 +267,7 @@ See `docs/RELEASE_CHECKLIST.md`.
 ## Version
 
 Personal Portfolio CMS v1.1.0
+
+## License
+
+Code: [MIT](LICENSE) © 2026 Canyuan Ye. The portfolio content (works, images, videos) is not covered and remains all rights reserved.
